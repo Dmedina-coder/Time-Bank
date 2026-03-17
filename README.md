@@ -1,136 +1,90 @@
 # Time Bank - Banco de Tiempo
 
-Aplicación web para intercambio de servicios basado en tiempo, desarrollada con arquitectura MVC.
+Plataforma web para intercambio de servicios entre usuarios usando una moneda virtual llamada **time credits**. Esta rama contiene el frontend en React y el backend en Python (Flask). El proyecto sigue arquitectura MVC, API REST y autenticación basada en JWT.
 
-## Estructura del Proyecto
+## Resumen del proyecto
+- Usuarios ganan créditos al ofrecer servicios y gastan créditos al solicitar servicios.
+- Soporta registro, login, publicación de servicios, solicitud/gestión de peticiones, transacciones de créditos y sistema de reseñas.
+
+## Estructura del repositorio
 
 ```
 Time_Bank/
-│
 ├── backend/              # Backend en Python/Flask
 │   ├── app/
-│   │   ├── controllers/  # Controladores
-│   │   ├── models/       # Modelos de datos
-│   │   ├── services/     # Lógica de negocio
-│   │   ├── routes/       # Rutas de la API
-│   │   └── middleware/   # Middlewares
-│   ├── main.py          # Punto de entrada
-│   └── requirements.txt # Dependencias Python
-│
-└── frontend/            # Frontend en React
-    ├── src/
-    │   ├── pages/       # Páginas de la aplicación
-    │   ├── components/  # Componentes reutilizables
-    │   ├── services/    # Servicios API
-    │   └── context/     # Context API
-    └── package.json     # Dependencias Node.js
+│   │   ├── controllers/
+│   │   ├── models/
+│   │   ├── services/
+│   │   ├── routes/
+│   │   └── middleware/
+│   ├── main.py
+│   └── requirements.txt
+└── frontend/             # Frontend en React
+        ├── public/
+        └── src/
 ```
 
 ## Tecnologías
 
-### Backend
-- Python 3.x
-- Flask
-- Flask-CORS
-- PyJWT
-- SQLAlchemy
+- Frontend: React 18, React Router
+- Backend: Python 3.x, Flask, PyJWT
+- Base de datos: MySQL
+- Autenticación: JWT
 
-### Frontend
-- React 18
-- React Router DOM 6
-- Context API
-- CSS3
+## Cómo ejecutar (rápido)
 
-## Instalación
-
-### Backend
+Backend (Windows):
 
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
+venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
-# Configurar variables de entorno en .env
+
 python main.py
 ```
 
-El backend estará disponible en `http://localhost:5000`
-
-### Frontend
+Frontend:
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env
-# Configurar variables de entorno en .env
 npm start
 ```
 
-El frontend estará disponible en `http://localhost:3000`
+## API — resumen de endpoints (extracto)
 
-## Funcionalidades
+- Authentication
+    - `POST /api/auth/register` — Registro (name, email, password)
+    - `POST /api/auth/login` — Login (email, password) → devuelve `access_token`
+    - `POST /api/auth/logout` — Logout (Authorization header)
 
-### Para Usuarios
-- Registro e inicio de sesión
-- Visualización de balance de tiempo
-- Búsqueda y filtrado de servicios
-- Creación de servicios propios
-- Solicitud de servicios
-- Gestión de solicitudes (aceptar/rechazar)
-- Sistema de reseñas
-- Historial de transacciones
+- Users
+    - `GET /api/users/me` — Perfil del usuario autenticado
+    - `PUT /api/users/me` — Actualizar perfil
+    - `GET /api/users` — Listado (admin)
 
-### Para Administradores
-- Panel de administración
-- Estadísticas del sistema
-- Gestión de usuarios
-- Aprobación de servicios
+- Services
+    - `GET /api/services` — Listar
+    - `POST /api/services` — Crear
+    - `GET /api/services/{id}` — Obtener
+    - `PUT /api/services/{id}` — Actualizar
+    - `DELETE /api/services/{id}` — Eliminar
 
-## API Endpoints
+- Requests
+    - `POST /api/requests` — Solicitar servicio
+    - `PUT /api/requests/{id}/accept|reject|complete|cancel` — Cambiar estado
 
-### Autenticación
-- `POST /api/auth/login` - Iniciar sesión
-- `POST /api/auth/register` - Registrar usuario
-- `POST /api/auth/logout` - Cerrar sesión
+- Transactions
+    - `GET /api/transactions` — Historial
+    - `POST /api/transactions/transfer` — Transferir créditos
 
-### Usuarios
-- `GET /api/users/:id` - Obtener usuario
-- `PUT /api/users/:id` - Actualizar usuario
+- Reviews
+    - `POST /api/reviews` — Crear reseña
+    - `GET /api/services/{id}/reviews` — Obtener reseñas
 
-### Servicios
-- `GET /api/services` - Listar servicios
-- `POST /api/services` - Crear servicio
-- `GET /api/services/:id` - Obtener servicio
-- `PUT /api/services/:id` - Actualizar servicio
-- `DELETE /api/services/:id` - Eliminar servicio
+Para detalles de request/response ver la documentación principal en `Time Bank – System Documentation.md`.
 
-### Solicitudes
-- `GET /api/requests` - Listar solicitudes
-- `POST /api/requests` - Crear solicitud
-- `GET /api/requests/:id` - Obtener solicitud
-- `PUT /api/requests/:id` - Actualizar solicitud
+## Base de datos
 
-### Transacciones
-- `GET /api/transactions` - Listar transacciones
-- `GET /api/transactions/:id` - Obtener transacción
-
-### Administración
-- `GET /api/admin/stats` - Obtener estadísticas
-- `GET /api/admin/users` - Listar todos los usuarios
-
-## Contribuir
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## Licencia
-
-Este proyecto es de código abierto.
-
-## Contacto
-
-Para preguntas y sugerencias, por favor abre un issue en el repositorio.
+El esquema de la base de datos se encuentra en `backend/schema.sql` (MySQL). Contiene las tablas principales: `users`, `services`, `requests`, `transactions`, `reviews`, `credit_logs`.
