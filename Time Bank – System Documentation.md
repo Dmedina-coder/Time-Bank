@@ -303,43 +303,173 @@ Para cada endpoint se indican los atributos esperados en las llamadas (request) 
 
 ## Services
 
-| Method | Endpoint           | Description    |
-| ------ | ------------------ | -------------- |
-| POST   | /api/services      | Create service |
-| GET    | /api/services      | List services  |
-| GET    | /api/services/{id} | Get service    |
-| PUT    | /api/services/{id} | Update service |
-| DELETE | /api/services/{id} | Delete service |
+- POST /api/services
+    - Request: Authorization header con JWT
+    - Request body (application/json):
+        - `title` (string, required)
+        - `description` (string, required)
+        - `category` (string, required)
+    - Response 201 (application/json):
+        - `id` (int)
+        - `title` (string)
+        - `description` (string)
+        - `owner_id` (int)
+        - `category` (string)
+        - `status` (string, default 'active')
+        - `created_at` (timestamp)
+
+- GET /api/services
+    - Request: query params opcionales:
+        - `page` (int, default 1)
+        - `per_page` (int, default 20)
+        - `category` (string)
+        - `search` (string, busca en título o descripción)
+        - `sort` (string, e.g. 'created_at:desc')
+    - Response 200 (application/json):
+        - `items` (array de objetos con `id`, `title`, `description`, `owner_id`, `category`, `status`, `created_at`)
+        - `total` (int)
+        - `page` (int)
+        - `per_page` (int)
+
+- GET /api/services/{id}
+    - Request: sin parámetros
+    - Response 200 (application/json):
+        - `id` (int)
+        - `title` (string)
+        - `description` (string)
+        - `owner_id` (int)
+        - `owner` (object: `id`, `name`, `email`)
+        - `category` (string)
+        - `status` (string)
+        - `created_at` (timestamp)
+
+- PUT /api/services/{id}
+    - Request: Authorization header con JWT (solo el propietario del servicio)
+    - Request body (application/json), campos opcionales:
+        - `title` (string)
+        - `description` (string)
+        - `category` (string)
+        - `status` (string, 'active'|'inactive'|'archived')
+    - Response 200 (application/json): objeto `service` actualizado
+
+- DELETE /api/services/{id}
+    - Request: Authorization header con JWT (solo el propietario del servicio)
+    - Response 204 No Content
 
 ---
 
 ## Requests
 
-| Method | Endpoint                    | Description      |
-| ------ | --------------------------- | ---------------- |
-| POST   | /api/requests               | Request service  |
-| PUT    | /api/requests/{id}/accept   | Accept request   |
-| PUT    | /api/requests/{id}/reject   | Reject request   |
-| PUT    | /api/requests/{id}/complete | Complete request |
-| PUT    | /api/requests/{id}/cancel   | Cancel request   |
+- POST /api/requests
+    - Request: Authorization header con JWT
+    - Request body (application/json):
+        - `service_id` (int, required)
+        - `scheduled_date` (datetime, required)
+        - `message` (string, optional)
+    - Response 201 (application/json):
+        - `id` (int)
+        - `service_id` (int)
+        - `requester_id` (int)
+        - `provider_id` (int)
+        - `status` (string, default 'pending')
+        - `scheduled_date` (datetime)
+        - `message` (string)
+        - `created_at` (timestamp)
+
+- PUT /api/requests/{id}/accept
+    - Request: Authorization header con JWT (solo el proveedor del servicio)
+    - Request body (application/json):
+        - `scheduled_date` (datetime, optional)
+    - Response 200 (application/json):
+        - objeto `request` con `status` = 'accepted'
+
+- PUT /api/requests/{id}/reject
+    - Request: Authorization header con JWT (solo el proveedor del servicio)
+    - Request body (application/json):
+        - `reason` (string, optional)
+    - Response 200 (application/json):
+        - objeto `request` con `status` = 'rejected'
+
+- PUT /api/requests/{id}/complete
+    - Request: Authorization header con JWT (solo el proveedor del servicio)
+    - Request body (application/json):
+        - `credits_used` (int, required)
+    - Response 200 (application/json):
+        - objeto `request` con `status` = 'completed'
+    - Nota: Ejecuta automáticamente la transacción de créditos
+
+- PUT /api/requests/{id}/cancel
+    - Request: Authorization header con JWT (requester o provider)
+    - Request body (application/json):
+        - `reason` (string, optional)
+    - Response 200 (application/json):
+        - objeto `request` con `status` = 'cancelled'
 
 ---
 
 ## Transactions
 
-| Method | Endpoint                   | Description         |
-| ------ | -------------------------- | ------------------- |
-| GET    | /api/transactions          | Transaction history |
-| POST   | /api/transactions/transfer | Transfer credits    |
+- GET /api/transactions
+    - Request: Authorization header con JWT
+    - Request query params opcionales:
+        - `page` (int, default 1)
+        - `per_page` (int, default 20)
+        - `type` (string, 'credit'|'debit'|'transfer')
+        - `start_date` (datetime)
+        - `end_date` (datetime)
+        - `sort` (string, e.g. 'created_at:desc')
+    - Response 200 (application/json):
+        - `items` (array de objetos con `id`, `sender_id`, `receiver_id`, `credits`, `type`, `reason`, `created_at`)
+        - `total` (int)
+        - `page` (int)
+        - `per_page` (int)
+        - `balance` (int, saldo actual del usuario)
+
+- POST /api/transactions/transfer
+    - Request: Authorization header con JWT
+    - Request body (application/json):
+        - `receiver_id` (int, required)
+        - `credits` (int, required, > 0)
+        - `reason` (string, optional)
+    - Response 201 (application/json):
+        - `id` (int)
+        - `sender_id` (int)
+        - `receiver_id` (int)
+        - `credits` (int)
+        - `type` (string, 'transfer')
+        - `reason` (string)
+        - `created_at` (timestamp)
 
 ---
 
 ## Reviews
 
-| Method | Endpoint                   | Description         |
-| ------ | -------------------------- | ------------------- |
-| POST   | /api/reviews               | Create review       |
-| GET    | /api/services/{id}/reviews | Get service reviews |
+- POST /api/reviews
+    - Request: Authorization header con JWT (solo el requester de un servicio completado)
+    - Request body (application/json):
+        - `service_id` (int, required)
+        - `request_id` (int, required)
+        - `rating` (int, required, 1-5)
+        - `comment` (string, optional)
+    - Response 201 (application/json):
+        - `id` (int)
+        - `service_id` (int)
+        - `reviewer_id` (int)
+        - `rating` (int)
+        - `comment` (string)
+        - `created_at` (timestamp)
+
+- GET /api/services/{id}/reviews
+    - Request: query params opcionales:
+        - `page` (int, default 1)
+        - `per_page` (int, default 10)
+        - `sort` (string, e.g. 'created_at:desc'|'rating:desc')
+    - Response 200 (application/json):
+        - `items` (array de objetos con `id`, `service_id`, `reviewer_id`, `reviewer` (object: `id`, `name`), `rating`, `comment`, `created_at`)
+        - `total` (int)
+        - `page` (int)
+        - `per_page` (int)
+        - `average_rating` (float)
 
 ---
 # 10. Payment Gateway Communication
