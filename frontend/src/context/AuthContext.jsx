@@ -1,29 +1,82 @@
-import React, { createContext } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
+import * as api from '../services/api';
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // TODO: Implementar estado de autenticación
-  const user = null; // Placeholder
-  const loading = false; // Placeholder
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // TODO: Implementar función de login
+  // Inicializar estado del usuario desde el localStorage
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const storedUser = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
+        
+        if (storedUser && token) {
+          setUser(JSON.parse(storedUser));
+          // Opcionalmente: validar el token con el backend obteniendo el perfil del usuario actual
+        }
+      } catch (error) {
+        console.error('Error inicializando auth', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    initAuth();
+  }, []);
+
   const login = async (credentials) => {
-    // Placeholder - implementar llamada a API
-    console.log('Login attempt:', credentials);
-    throw new Error('Login no implementado');
+    try {
+      setLoading(true);
+      const data = await api.login(credentials);
+      
+      // Guardar información en estado local y localstorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
+      
+      return data;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // TODO: Implementar función de logout
-  const logout = () => {
-    // Placeholder - implementar logout
-    console.log('Logout');
+  const register = async (userData) => {
+    try {
+      setLoading(true);
+      const data = await api.register(userData);
+      
+      // Auto-login después del registro
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
+      
+      return data;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // TODO: Implementar actualización de datos de usuario
+  const logout = async () => {
+    try {
+      setLoading(true);
+      await api.logout();
+    } finally {
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      setLoading(false);
+    }
+  };
+
   const updateUserData = (userData) => {
-    // Placeholder - implementar actualización
-    console.log('Update user data:', userData);
+    setUser((prev) => {
+      const updatedUser = { ...prev, ...userData };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
   };
 
   return (
@@ -31,8 +84,10 @@ export const AuthProvider = ({ children }) => {
       user,
       loading,
       login,
+      register,
       logout,
-      updateUserData
+      updateUserData,
+      isAuthenticated: !!user
     }}>
       {children}
     </AuthContext.Provider>

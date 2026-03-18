@@ -9,18 +9,48 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 // ============ AUTENTICACIÓN ============
 
 export const login = async (credentials) => {
-  // TODO: Implementar login
-  throw new Error('Login no implementado');
+  const response = await fetch(`${API_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credentials)
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al iniciar sesión');
+  }
+  return response.json();
 };
 
 export const register = async (userData) => {
-  // TODO: Implementar registro
-  throw new Error('Registro no implementado');
+  const response = await fetch(`${API_URL}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData)
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error en el registro');
+  }
+  return response.json();
 };
 
-export const logout = () => {
-  // TODO: Implementar logout
-  localStorage.removeItem('token');
+export const logout = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (token) {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error during logout request:', error);
+  } finally {
+    localStorage.removeItem('token');
+  }
 };
 
 // ============ USUARIOS ============

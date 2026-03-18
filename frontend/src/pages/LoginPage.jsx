@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import './LoginPage.css';
 
 const LoginPage = () => {
@@ -7,18 +8,38 @@ const LoginPage = () => {
     username: '',
     password: ''
   });
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setCredentials({
       ...credentials,
       [e.target.name]: e.target.value
     });
+    // Limpiar error al escribir
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implementar llamada al backend
-    console.log('Login attempt:', credentials);
+    if (!credentials.username || !credentials.password) {
+      setError('Por favor completa todos los campos');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+      await login(credentials);
+      navigate('/dashboard'); // Redirigir al panel principal tras el login exitoso
+    } catch (err) {
+      setError(err.message || 'Error al iniciar sesión. Inténtalo de nuevo.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -26,6 +47,8 @@ const LoginPage = () => {
       <div className="login-card">
         <h1>Iniciar Sesión</h1>
         <p className="subtitle">Bienvenido al Banco de Tiempo</p>
+
+        {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -52,8 +75,8 @@ const LoginPage = () => {
             />
           </div>
 
-          <button type="submit" className="btn-primary">
-            Iniciar Sesión
+          <button type="submit" className="btn-primary" disabled={isSubmitting}>
+            {isSubmitting ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
 

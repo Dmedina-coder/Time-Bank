@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import './RegisterPage.css';
 
 const RegisterPage = () => {
@@ -11,18 +12,55 @@ const RegisterPage = () => {
     fullName: '',
     phone: ''
   });
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { register } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Limpiar el error cuando el usuario escribe
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implementar llamada al backend
-    console.log('Register attempt:', formData);
+    
+    // Validación básica de formulario
+    if (formData.password !== formData.confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+      
+      // Preparar solo los campos que el backend necesita
+      const userData = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        fullName: formData.fullName,
+        phone: formData.phone || undefined
+      };
+      
+      await register(userData);
+      navigate('/dashboard'); // Redirigir al panel principal tras un registro exitoso
+    } catch (err) {
+      setError(err.message || 'Error en el registro. Es posible que el usuario o email ya exista.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -30,6 +68,8 @@ const RegisterPage = () => {
       <div className="register-card">
         <h1>Registro</h1>
         <p className="subtitle">Únete al Banco de Tiempo</p>
+
+        {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -103,8 +143,8 @@ const RegisterPage = () => {
             />
           </div>
 
-          <button type="submit" className="btn-primary">
-            Registrarse
+          <button type="submit" className="btn-primary" disabled={isSubmitting}>
+            {isSubmitting ? 'Registrando...' : 'Registrarse'}
           </button>
         </form>
 
