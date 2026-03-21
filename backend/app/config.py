@@ -13,3 +13,5 @@ class Config:
         f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "default_secret_key")
+    PASSWORD_HASH_SALT = os.getenv("PASSWORD_HASH_SALT", "default_salt")

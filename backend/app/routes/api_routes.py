@@ -3,31 +3,58 @@ API Routes
 Define todas las rutas de la API
 """
 
-from flask import Flask, Blueprint
+from flask import Blueprint, request, jsonify
+from app.controllers.auth_controller import AuthController
+from app.controllers.user_controller import UserController
+from app.controllers.admin_controller import AdminController
+from app.middleware.auth_middleware import AuthMiddleware
+from app.services.auth_service import AuthService
 
 api = Blueprint('api', __name__)
+
+# Instanciar servicios y middleware
+auth_service = AuthService()
+auth_middleware = AuthMiddleware(auth_service)
+
+# Instanciar controladores
+auth_controller = AuthController()
+user_controller = UserController()
+admin_controller = AdminController()
 
 # Rutas de autenticación
 @api.route('/auth/login', methods=['POST'])
 def login():
-    pass
+    return auth_controller.login(request)
 
 @api.route('/auth/register', methods=['POST'])
 def register():
-    pass
+    return auth_controller.register(request)
 
 @api.route('/auth/logout', methods=['POST'])
+@auth_middleware.require_auth
 def logout():
-    pass
+    return auth_controller.logout(request)
 
 # Rutas de usuarios
+@api.route('/users/me', methods=['GET'])
+@auth_middleware.require_auth
+def get_current_user():
+    return user_controller.get_current_user(request)
+
+@api.route('/users/me', methods=['PUT'])
+@auth_middleware.require_auth
+def update_current_user():
+    return user_controller.update_current_user(request)
+
 @api.route('/users/<int:user_id>', methods=['GET'])
+@auth_middleware.require_auth
 def get_user(user_id):
-    pass
+    return user_controller.get_user(user_id)
 
 @api.route('/users/<int:user_id>', methods=['PUT'])
+@auth_middleware.require_auth
 def update_user(user_id):
-    pass
+    return user_controller.update_user(user_id, request.get_json())
 
 # Rutas de servicios
 @api.route('/services', methods=['GET'])
@@ -74,12 +101,16 @@ def get_transaction(transaction_id):
 
 # Rutas de administración
 @api.route('/admin/stats', methods=['GET'])
+@auth_middleware.require_auth
+@auth_middleware.require_admin
 def get_stats():
-    pass
+    return admin_controller.get_stats()
 
 @api.route('/admin/users', methods=['GET'])
+@auth_middleware.require_auth
+@auth_middleware.require_admin
 def get_all_users():
-    pass
+    return admin_controller.get_all_users(request)
 
 def register_routes(app):
     """Registra todas las rutas en la aplicación"""
