@@ -61,43 +61,7 @@ Users can optionally buy time credits through an external payment provider.
 Administrators oversee platform activity and moderate users and services.
 
 ---
-## 1.4 Actors
-The system includes the following actors:
-### User
-## Authentication
-
-Todas las llamadas protegidas requieren el header `Authorization: Bearer <token>`.
-
-| Method | Endpoint | Request (application/json) | Response (application/json) |
-| ------ | -------- | -------------------------- | --------------------------- |
-| POST | /api/auth/register | `name` (string, required)<br>`email` (string, required, email)<br>`password` (string, required, min 8)<br>`role` (string, optional, 'user'|'admin') | 201: `id`, `name`, `email`, `role`, `balance`, `created_at`, `access_token` (JWT) |
-| POST | /api/auth/login | `email` (string, required)<br>`password` (string, required) | 200: `access_token` (JWT), `token_type` ('Bearer'), `expires_in` (int seconds), `user` (object: `id`,`name`,`email`,`role`,`balance`,`created_at`) |
-| POST | /api/auth/logout | Authorization header con JWT | 204 No Content |
-
----
-
-## Users
-
-| Method | Endpoint | Request | Response |
-| ------ | -------- | ------- | -------- |
-| GET | /api/users/me | Authorization header con JWT | 200: objeto `user` con `id`,`name`,`email`,`role`,`balance`,`profile` (object opcional: `phone`,`address`,`bio`),`created_at` |
-| PUT | /api/users/me | Authorization header con JWT; body (application/json) con campos a actualizar opcionales: `name`,`email`,`password`,`profile` (object: `phone`,`address`,`bio`) | 200: objeto `user` actualizado (mismos campos que GET /api/users/me) |
-| GET | /api/users | Authorization header con JWT (rol `admin`); query params opcionales: `page` (int), `per_page` (int), `search` (string), `sort` (string) | 200: `items` (array de objetos `user`), `total` (int), `page` (int), `per_page` (int) |
-
----
-
-* Authentication & Authorization
-* User Management
-* Services Marketplace
-* Requests Management
-* Time Credits System
-* Transactions
-* Reviews & Ratings
-* Admin Panel
-* Payment Integration
-
----
-# 5. Backend Structure (Python)
+# 2. Backend Structure (Python)
 
 Suggested structure:
 
@@ -114,7 +78,7 @@ backend/              # Backend en Python/Flask
 ```
 
 ---
-# 6. Frontend Structure (React)
+# 3. Frontend Structure (React)
 
 ```
 frontend/            # Frontend en React
@@ -127,7 +91,7 @@ frontend/            # Frontend en React
 ```
 
 ---
-# 7. Domain Model (Class Diagram)
+# 4. Domain Model (Class Diagram)
 
 ```mermaid
 classDiagram
@@ -186,7 +150,7 @@ Service --> Review
 ```
 
 ---
-# 8. Database ER Diagram
+# 5. Database ER Diagram
 
 ```mermaid
 erDiagram
@@ -235,7 +199,7 @@ REVIEWS {
 ```
 
 ---
-# 9. API Design
+# 6. API Design
 
 ## Authentication
 
@@ -472,7 +436,7 @@ Para cada endpoint se indican los atributos esperados en las llamadas (request) 
         - `average_rating` (float)
 
 ---
-# 10. Payment Gateway Communication
+# 7. Payment Gateway Communication
 
 ```mermaid
 sequenceDiagram
@@ -491,7 +455,7 @@ sequenceDiagram
 
 
 ---
-# 11. Use Case Diagram
+# 8. Use Case Diagram
 
 ```mermaid
 flowchart TD
@@ -524,22 +488,40 @@ flowchart TD
 ```
 
 ---
-# 12. Navigation Model (Frontend)
+# 9. Navigation Model (Frontend)
 
 ```mermaid
-flowchart LR
-    Home --> Login
-    Home --> Register
-    Login --> Dashboard
-    Dashboard --> Services
-    Dashboard --> Requests
-    Dashboard --> Transactions
-    Dashboard --> Profile
-    Dashboard --> AdminPanel
+flowchart TD
+    A[Home] --"Click 'Login'"--> B(Login)
+    A --"Click 'Register'"--> C(Register)
+    
+    B --"Successful Login"--> D{Dashboard}
+    C --"Successful Registration"--> D
+
+    D --"View Services"--> E[Services List]
+    D --"View My Requests"--> F[My Requests]
+    D --"View Transactions"--> G[My Transactions]
+    D --"View Profile"--> H[My Profile]
+    D --"Admin Access"--> I[Admin Panel]
+    D --"Logout"--> A
+
+    E --"Select a Service"--> L(Service Details)
+    L --"Click 'Request Service'"--> M[Create Request Page]
+    L --"Click Provider's Name"--> N[Provider's Profile]
+    
+    M --"Submit Request"--> F
+    N --"Back to Service"--> L
+    
+    E --"Back to Dashboard"--> D
+    F --"Back to Dashboard"--> D
+    G --"Back to Dashboard"--> D
+    H --"Back to Dashboard"--> D
+    I --"Back to Dashboard"--> D
+    L --"Back to Services"--> E
 ```
 
 ---
-# 13. Security Model
+# 10. Security Model
 
 Authentication method:
 
@@ -556,7 +538,7 @@ Security measures:
 * Rate limiting
 
 ---
-# 14. Sprint-Based Implementation Plan
+# 11. Sprint-Based Implementation Plan
 
 ## Sprint 1 — Foundations & Security
 
