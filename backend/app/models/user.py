@@ -2,31 +2,28 @@
 User Model
 Modelo de datos para usuarios
 """
-
+from app import db
 from datetime import datetime
 
-class User:
-    def __init__(self, id=None, username=None, email=None, password_hash=None, 
-                 full_name=None, phone=None, created_at=None):
-        self.id = id
-        self.username = username
-        self.email = email
-        self.password_hash = password_hash
-        self.full_name = full_name
-        self.phone = phone
-        self.created_at = created_at or datetime.now()
-        self.is_active = True
-        self.role = 'user'
-    
+class User(db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(20), nullable=False, default='user')
+    balance = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
     def to_dict(self):
         """Convierte el modelo a diccionario"""
         return {
             'id': self.id,
-            'username': self.username,
+            'name': self.name,
             'email': self.email,
-            'full_name': self.full_name,
-            'phone': self.phone,
-            'created_at': self.created_at,
-            'is_active': self.is_active,
-            'role': self.role
+            'role': self.role,
+            'balance': self.balance,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
