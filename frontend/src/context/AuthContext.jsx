@@ -33,7 +33,8 @@ export const AuthProvider = ({ children }) => {
       const data = await api.login(credentials);
       
       // Guardar información en estado local y localstorage
-      localStorage.setItem('token', data.token);
+      const token = data.token || data.access_token;
+      localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
       
@@ -49,7 +50,8 @@ export const AuthProvider = ({ children }) => {
       const data = await api.register(userData);
       
       // Auto-login después del registro
-      localStorage.setItem('token', data.token);
+      const token = data.token || data.access_token;
+      localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(data.user));
       setUser(data.user);
       

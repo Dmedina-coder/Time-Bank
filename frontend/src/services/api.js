@@ -55,14 +55,47 @@ export const logout = async () => {
 
 // ============ USUARIOS ============
 
+// Función auxiliar para obtener las cabeceras con el token
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': token ? `Bearer ${token}` : ''
+  };
+};
+
 export const getUser = async (userId) => {
-  // TODO: Implementar obtener usuario
-  throw new Error('Obtener usuario no implementado');
+  const response = await fetch(`${API_URL}/users/${userId}`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  if (!response.ok) {
+    throw new Error('Error al obtener el usuario');
+  }
+  return response.json();
+};
+
+export const getCurrentUser = async () => {
+  const response = await fetch(`${API_URL}/users/me`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  if (!response.ok) {
+    throw new Error('Error al obtener tu perfil');
+  }
+  return response.json();
 };
 
 export const updateUser = async (userId, userData) => {
-  // TODO: Implementar actualizar usuario
-  throw new Error('Actualizar usuario no implementado');
+  const response = await fetch(`${API_URL}/users/${userId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(userData)
+  });
+  if (!response.ok) {
+    throw new Error('Error al actualizar el usuario');
+  }
+  return response.json();
 };
 
 export const getUserBalance = async (userId) => {

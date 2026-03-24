@@ -36,8 +36,8 @@ const RegisterPage = () => {
       return;
     }
     
-    if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+    if (formData.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
       return;
     }
 
@@ -47,11 +47,9 @@ const RegisterPage = () => {
       
       // Preparar solo los campos que el backend necesita
       const userData = {
-        username: formData.username,
+        name: formData.fullName,
         email: formData.email,
-        password: formData.password,
-        fullName: formData.fullName,
-        phone: formData.phone || undefined
+        password: formData.password
       };
       
       await register(userData);
