@@ -14,6 +14,12 @@ class AuthMiddleware:
         """Decorator para requerir autenticación"""
         @wraps(f)
         def decorated_function(*args, **kwargs):
+            """
+            # --- INICIO: CAMBIO TEMPORAL PARA PRUEBAS ---
+            request.user = {'id': 1, 'role': 'user'} 
+            return f(*args, **kwargs)
+            # --- FIN: CAMBIO TEMPORAL PARA PRUEBAS ---
+            """
             token = request.headers.get('Authorization')
             
             if not token:
