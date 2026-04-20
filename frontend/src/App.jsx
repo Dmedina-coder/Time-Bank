@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import Services from './pages/Services';
 import ServiceDetails from './pages/ServiceDetails';
 import Requests from './pages/Requests';
+import Transactions from './pages/Transactions';
 import AdminPanel from './pages/AdminPanel';
 
 import './App.css';
@@ -59,6 +60,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Requests />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/transactions" 
+                element={
+                  <ProtectedRoute>
+                    <Transactions />
                   </ProtectedRoute>
                 } 
               />

@@ -21,6 +21,7 @@ const Navbar = () => {
             <Link to="/dashboard">Panel</Link>
             <Link to="/services">Servicios</Link>
             <Link to="/requests">Solicitudes</Link>
+            <Link to="/transactions">Transacciones</Link>
             {user?.role === 'admin' && <Link to="/admin">Admin</Link>}
             <span className="user-greeting">Hola, {user?.username}</span>
             <button onClick={handleLogout} className="btn-logout">Cerrar Sesión</button>
