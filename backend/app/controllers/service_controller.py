@@ -29,7 +29,7 @@ class ServiceController:
 
     def _current_user_id(self):
         if hasattr(flask_request, 'user'):
-            return flask_request.user.get('id')
+            return flask_request.user.get('user_id')
         return None
     
     def get_services(self):
