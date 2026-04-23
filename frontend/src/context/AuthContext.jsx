@@ -7,19 +7,23 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Inicializar estado del usuario desde el localStorage
+  // Inicializar estado del usuario validando el token con el backend
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const storedUser = localStorage.getItem('user');
         const token = localStorage.getItem('token');
-        
-        if (storedUser && token) {
-          setUser(JSON.parse(storedUser));
-          // Opcionalmente: validar el token con el backend obteniendo el perfil del usuario actual
-        }
+        if (!token) return;
+
+        // Siempre validar el token contra /users/me para garantizar
+        // que el objeto user y el JWT están sincronizados
+        const freshUser = await api.getCurrentUser();
+        localStorage.setItem('user', JSON.stringify(freshUser));
+        setUser(freshUser);
       } catch (error) {
-        console.error('Error inicializando auth', error);
+        // Token inválido o expirado: limpiar sesión
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
       } finally {
         setLoading(false);
       }

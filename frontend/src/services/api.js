@@ -210,7 +210,8 @@ export const createRequest = async (requestData) => {
 export const acceptRequest = async (requestId) => {
   const response = await fetch(`${API_URL}/requests/${requestId}/accept`, {
     method: 'PUT',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    body: JSON.stringify({})
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -222,7 +223,8 @@ export const acceptRequest = async (requestId) => {
 export const rejectRequest = async (requestId) => {
   const response = await fetch(`${API_URL}/requests/${requestId}/reject`, {
     method: 'PUT',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    body: JSON.stringify({})
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -234,7 +236,8 @@ export const rejectRequest = async (requestId) => {
 export const cancelRequest = async (requestId) => {
   const response = await fetch(`${API_URL}/requests/${requestId}/cancel`, {
     method: 'PUT',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    body: JSON.stringify({})
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -246,7 +249,8 @@ export const cancelRequest = async (requestId) => {
 export const completeRequest = async (requestId) => {
   const response = await fetch(`${API_URL}/requests/${requestId}/complete`, {
     method: 'PUT',
-    headers: getAuthHeaders()
+    headers: getAuthHeaders(),
+    body: JSON.stringify({})
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

@@ -110,26 +110,27 @@ def update_request(request_id):
 @api.route('/requests/<int:request_id>/cancel', methods=['PUT'])
 @auth_middleware.require_auth
 def cancel_request(request_id):
+    data = request.get_json(force=True, silent=True) or {}
     return request_controller.cancel_request(request_id)
-
+                               
 @api.route('/requests/<int:request_id>/accept', methods=['PUT'])
 @auth_middleware.require_auth
 def accept_request(request_id):
-    data = request.get_json() or {}
+    data = request.get_json(force=True, silent=True) or {}
     data['status'] = 'accepted'
     return request_controller.update_request(request_id, data)
 
 @api.route('/requests/<int:request_id>/reject', methods=['PUT'])
 @auth_middleware.require_auth
 def reject_request(request_id):
-    data = request.get_json() or {}
+    data = request.get_json(force=True, silent=True) or {}
     data['status'] = 'rejected'
     return request_controller.update_request(request_id, data)
 
 @api.route('/requests/<int:request_id>/complete', methods=['PUT'])
 @auth_middleware.require_auth
 def complete_request(request_id):
-    data = request.get_json() or {}
+    data = request.get_json(force=True, silent=True) or {}
     data['status'] = 'completed'
     return request_controller.update_request(request_id, data)
 
