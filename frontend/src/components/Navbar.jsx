@@ -23,7 +23,7 @@ const Navbar = () => {
             <Link to="/requests">Solicitudes</Link>
             <Link to="/transactions">Transacciones</Link>
             {user?.role === 'admin' && <Link to="/admin">Admin</Link>}
-            <span className="user-greeting">Hola, {user?.username}</span>
+            <span className="user-greeting">Hola, {user?.name}</span>
             <button onClick={handleLogout} className="btn-logout">Cerrar Sesión</button>
           </>
         ) : (

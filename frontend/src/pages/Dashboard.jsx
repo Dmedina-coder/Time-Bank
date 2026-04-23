@@ -66,7 +66,7 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h1>Bienvenido, {user?.username || user?.name}</h1>
+        <h1>Bienvenido, {user?.name}</h1>
         <p className="dashboard-subtitle">Tu panel personal del Banco de Tiempo</p>
       </div>
 
