@@ -45,10 +45,11 @@ const LoginPage = () => {
   return (
     <div className="login-container">
       <div className="login-card">
+        <div className="login-logo">⏱️</div>
         <h1>Iniciar Sesión</h1>
         <p className="subtitle">Bienvenido al Banco de Tiempo</p>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="alert alert-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

@@ -64,10 +64,11 @@ const RegisterPage = () => {
   return (
     <div className="register-container">
       <div className="register-card">
+        <div className="register-logo">⏱️</div>
         <h1>Registro</h1>
         <p className="subtitle">Únete al Banco de Tiempo</p>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && <div className="alert alert-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
