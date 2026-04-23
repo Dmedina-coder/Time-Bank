@@ -110,26 +110,27 @@ def update_request(request_id):
 @api.route('/requests/<int:request_id>/cancel', methods=['PUT'])
 @auth_middleware.require_auth
 def cancel_request(request_id):
+    data = request.get_json(force=True, silent=True) or {}
     return request_controller.cancel_request(request_id)
-
+                               
 @api.route('/requests/<int:request_id>/accept', methods=['PUT'])
 @auth_middleware.require_auth
 def accept_request(request_id):
-    data = request.get_json() or {}
+    data = request.get_json(force=True, silent=True) or {}
     data['status'] = 'accepted'
     return request_controller.update_request(request_id, data)
 
 @api.route('/requests/<int:request_id>/reject', methods=['PUT'])
 @auth_middleware.require_auth
 def reject_request(request_id):
-    data = request.get_json() or {}
+    data = request.get_json(force=True, silent=True) or {}
     data['status'] = 'rejected'
     return request_controller.update_request(request_id, data)
 
 @api.route('/requests/<int:request_id>/complete', methods=['PUT'])
 @auth_middleware.require_auth
 def complete_request(request_id):
-    data = request.get_json() or {}
+    data = request.get_json(force=True, silent=True) or {}
     data['status'] = 'completed'
     return request_controller.update_request(request_id, data)
 
@@ -166,6 +167,25 @@ def get_stats():
 @auth_middleware.require_admin
 def get_all_users():
     return admin_controller.get_all_users(request)
+
+@api.route('/admin/users/<int:user_id>/credits', methods=['POST'])
+@auth_middleware.require_auth
+@auth_middleware.require_admin
+def manage_user_credits(user_id):
+    data = request.get_json() or {}
+    return admin_controller.manage_credits(user_id, data.get('amount', 0))
+
+@api.route('/admin/services/<int:service_id>/approve', methods=['PUT'])
+@auth_middleware.require_auth
+@auth_middleware.require_admin
+def approve_service(service_id):
+    return admin_controller.approve_service(service_id)
+
+@api.route('/admin/services/<int:service_id>/reject', methods=['PUT'])
+@auth_middleware.require_auth
+@auth_middleware.require_admin
+def reject_service(service_id):
+    return admin_controller.reject_service(service_id)
 
 def register_routes(app):
     """Registra todas las rutas en la aplicación"""

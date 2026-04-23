@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS `services` (
   `description` TEXT,
   `owner_id` INT NOT NULL,
   `category` VARCHAR(100),
+  `credits` INT NOT NULL DEFAULT 1,
   `status` ENUM('active','inactive','deleted') NOT NULL DEFAULT 'active',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

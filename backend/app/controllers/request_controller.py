@@ -9,6 +9,7 @@ from flask import jsonify, request as flask_request
 from sqlalchemy import text
 
 from app import db
+from app.models.user import User
 
 
 class RequestController:
@@ -34,7 +35,7 @@ class RequestController:
 
     def _current_user_id(self):
         if hasattr(flask_request, 'user'):
-            return flask_request.user.get('id')
+            return flask_request.user.get('user_id')
         return None
 
     def _parse_datetime(self, value):
@@ -266,6 +267,47 @@ class RequestController:
                 text(f"UPDATE requests SET {set_clause} WHERE id = :request_id"),
                 updates
             )
+
+            # Transferencia automática de créditos al completar el servicio
+            if updates.get('status') == 'completed' and current['status'] not in ('completed', 'cancelled', 'rejected'):
+                service_row = db.session.execute(
+                    text("""
+                        SELECT s.credits
+                        FROM requests r
+                        JOIN services s ON r.service_id = s.id
+                        WHERE r.id = :request_id
+                    """),
+                    {'request_id': request_id}
+                ).mappings().first()
+
+                requester = User.query.get(int(current['requester_id']))
+                provider = User.query.get(int(current['provider_id']))
+
+                if not requester or not provider:
+                    db.session.rollback()
+                    return jsonify({'error': 'No se encontraron usuarios para la transacción'}), 400
+
+                service_credits = int(service_row['credits']) if service_row and service_row.get('credits') else 1
+
+                if requester.balance < service_credits:
+                    db.session.rollback()
+                    return jsonify({'error': f'Saldo insuficiente. Se requieren {service_credits} créditos para completar el servicio'}), 400
+
+                requester.balance -= service_credits
+                provider.balance += service_credits
+
+                db.session.execute(
+                    text("""
+                        INSERT INTO transactions (sender_id, receiver_id, credits, type)
+                        VALUES (:sender_id, :receiver_id, :credits, 'purchase')
+                    """),
+                    {
+                        'sender_id': requester.id,
+                        'receiver_id': provider.id,
+                        'credits': service_credits
+                    }
+                )
+
             db.session.commit()
 
             row = db.session.execute(
