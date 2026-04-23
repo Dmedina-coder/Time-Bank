@@ -351,8 +351,9 @@ export const getAdminStats = async () => {
   return response.json();
 };
 
-export const getAllUsers = async () => {
-  const response = await fetch(`${API_URL}/admin/users`, {
+export const getAllUsers = async (search = '') => {
+  const url = `${API_URL}/admin/users${search ? `?search=${encodeURIComponent(search)}` : ''}`;
+  const response = await fetch(url, {
     method: 'GET',
     headers: getAuthHeaders()
   });
@@ -362,10 +363,39 @@ export const getAllUsers = async () => {
   return response.json();
 };
 
-export const approveService = async (serviceId) => {
-  return updateService(serviceId, { status: 'active' });
+export const adminAdjustCredits = async (userId, amount) => {
+  const response = await fetch(`${API_URL}/admin/users/${userId}/credits`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ amount })
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al ajustar créditos');
+  }
+  return response.json();
 };
 
-export const rejectService = async (serviceId) => {
-  return updateService(serviceId, { status: 'inactive' });
+export const adminApproveService = async (serviceId) => {
+  const response = await fetch(`${API_URL}/admin/services/${serviceId}/approve`, {
+    method: 'PUT',
+    headers: getAuthHeaders()
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al activar servicio');
+  }
+  return response.json();
+};
+
+export const adminRejectService = async (serviceId) => {
+  const response = await fetch(`${API_URL}/admin/services/${serviceId}/reject`, {
+    method: 'PUT',
+    headers: getAuthHeaders()
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al desactivar servicio');
+  }
+  return response.json();
 };
