@@ -49,7 +49,7 @@ class AuthController:
             name=data['name'],
             email=data['email'],
             password=hashed_password,
-            role=data.get('role', 'user')
+            role='user'
         )
         
         db.session.add(new_user)
@@ -68,5 +68,5 @@ class AuthController:
         """Maneja el cierre de sesión"""
         # Para JWT, el logout es manejado por el cliente al destruir el token.
         # Se puede implementar una blocklist de tokens si se necesita.
-        return jsonify({'message': 'Logout exitoso'}), 204
+        return jsonify({'message': 'Logout exitoso'}), 200
 
