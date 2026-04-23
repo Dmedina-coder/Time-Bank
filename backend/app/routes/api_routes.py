@@ -167,6 +167,25 @@ def get_stats():
 def get_all_users():
     return admin_controller.get_all_users(request)
 
+@api.route('/admin/users/<int:user_id>/credits', methods=['POST'])
+@auth_middleware.require_auth
+@auth_middleware.require_admin
+def manage_user_credits(user_id):
+    data = request.get_json() or {}
+    return admin_controller.manage_credits(user_id, data.get('amount', 0))
+
+@api.route('/admin/services/<int:service_id>/approve', methods=['PUT'])
+@auth_middleware.require_auth
+@auth_middleware.require_admin
+def approve_service(service_id):
+    return admin_controller.approve_service(service_id)
+
+@api.route('/admin/services/<int:service_id>/reject', methods=['PUT'])
+@auth_middleware.require_auth
+@auth_middleware.require_admin
+def reject_service(service_id):
+    return admin_controller.reject_service(service_id)
+
 def register_routes(app):
     """Registra todas las rutas en la aplicación"""
     app.register_blueprint(api, url_prefix='/api')
