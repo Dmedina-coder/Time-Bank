@@ -6,7 +6,7 @@ import './Services.css';
 
 const CATEGORIES = ['tecnología', 'educación', 'hogar', 'salud', 'transporte', 'arte', 'otros'];
 
-const initialForm = { title: '', description: '', category: '' };
+const initialForm = { title: '', description: '', category: '', credits: 1 };
 
 const Services = () => {
   const { user } = useContext(AuthContext);
@@ -59,7 +59,7 @@ const Services = () => {
 
   const openEdit = (service) => {
     setEditingService(service);
-    setForm({ title: service.title, description: service.description, category: service.category });
+    setForm({ title: service.title, description: service.description, category: service.category, credits: service.credits ?? 1 });
     setFormError(null);
     setShowModal(true);
   };
@@ -163,6 +163,7 @@ const Services = () => {
                   </h3>
                   <p className="service-description">{service.description}</p>
                   <p className="service-owner">Por: {service.owner_name}</p>
+                  <p className="service-credits">🕑 {service.credits ?? 1} crédito{(service.credits ?? 1) !== 1 ? 's' : ''}</p>
                 </div>
                 <div className="service-card-actions">
                   <Link to={`/services/${service.id}`} className="btn-outline btn-sm">Ver detalles</Link>
@@ -230,6 +231,17 @@ const Services = () => {
                   <option value="">Selecciona una categoría</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
                 </select>
+              </div>
+              <div className="form-group">
+                <label>Coste en créditos</label>
+                <input
+                  type="number"
+                  name="credits"
+                  value={form.credits}
+                  onChange={handleFormChange}
+                  min="1"
+                  required
+                />
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-outline" onClick={() => setShowModal(false)}>Cancelar</button>

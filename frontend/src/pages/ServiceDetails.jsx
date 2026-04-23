@@ -92,6 +92,10 @@ const ServiceDetails = () => {
         <div className="service-details-body">
           <h3>Descripción</h3>
           <p className="service-full-description">{service.description}</p>
+          <div className="service-credits-info">
+            <span className="credits-label">Coste del servicio:</span>
+            <span className="credits-value">⏱ {service.credits ?? 1} crédito{(service.credits ?? 1) !== 1 ? 's' : ''}</span>
+          </div>
         </div>
 
         <div className="service-details-footer">
@@ -127,6 +131,9 @@ const ServiceDetails = () => {
             <form onSubmit={handleRequestSubmit} className="modal-form">
               <p className="modal-service-name">
                 Estás solicitando: <strong>{service.title}</strong>
+              </p>
+              <p className="modal-credits-notice">
+                Se descontarán <strong>{service.credits ?? 1} crédito{(service.credits ?? 1) !== 1 ? 's' : ''}</strong> de tu saldo al completarse el servicio.
               </p>
               {requestError && <div className="alert alert-error">{requestError}</div>}
               <div className="form-group">
