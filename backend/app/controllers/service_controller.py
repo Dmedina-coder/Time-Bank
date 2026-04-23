@@ -19,6 +19,7 @@ class ServiceController:
             'description': row['description'],
             'owner_id': row['owner_id'],
             'category': row['category'],
+            'credits': row.get('credits', 1),
             'status': row['status'],
             'created_at': row['created_at'].isoformat() if row.get('created_at') else None,
             'owner_name': row.get('owner_name')
@@ -68,7 +69,7 @@ class ServiceController:
             rows = db.session.execute(
                 text(
                     f"""
-                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.status, s.created_at, u.name AS owner_name
+                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits, s.status, s.created_at, u.name AS owner_name
                     FROM services s
                     LEFT JOIN users u ON s.owner_id = u.id
                     WHERE {where_sql}
@@ -94,7 +95,7 @@ class ServiceController:
             row = db.session.execute(
                 text(
                     """
-                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.status, s.created_at,
+                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits, s.status, s.created_at,
                            u.name AS owner_name, u.email AS owner_email
                     FROM services s
                     LEFT JOIN users u ON s.owner_id = u.id
@@ -118,6 +119,7 @@ class ServiceController:
                     'email': row.get('owner_email')
                 },
                 'category': row['category'],
+                'credits': row.get('credits', 1),
                 'status': row['status'],
                 'created_at': row['created_at'].isoformat() if row.get('created_at') else None
             }), 200
@@ -133,6 +135,11 @@ class ServiceController:
             description = (data.get('description') or '').strip()
             category = (data.get('category') or '').strip()
 
+            try:
+                credits = max(int(data.get('credits', 1)), 1)
+            except (TypeError, ValueError):
+                credits = 1
+
             owner_id = self._current_user_id() or data.get('owner_id')
 
             if not title or not description or not category:
@@ -144,15 +151,16 @@ class ServiceController:
             result = db.session.execute(
                 text(
                     """
-                    INSERT INTO services (title, description, owner_id, category, status)
-                    VALUES (:title, :description, :owner_id, :category, 'active')
+                    INSERT INTO services (title, description, owner_id, category, credits, status)
+                    VALUES (:title, :description, :owner_id, :category, :credits, 'active')
                     """
                 ),
                 {
                     'title': title,
                     'description': description,
                     'owner_id': owner_id,
-                    'category': category
+                    'category': category,
+                    'credits': credits
                 }
             )
             service_id = result.lastrowid
@@ -161,9 +169,11 @@ class ServiceController:
             service = db.session.execute(
                 text(
                     """
-                    SELECT id, title, description, owner_id, category, status, created_at
-                    FROM services
-                    WHERE id = :service_id
+                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits, s.status, s.created_at,
+                           u.name AS owner_name
+                    FROM services s
+                    LEFT JOIN users u ON s.owner_id = u.id
+                    WHERE s.id = :service_id
                     """
                 ),
                 {'service_id': service_id}
@@ -218,6 +228,13 @@ class ServiceController:
                     return jsonify({'error': 'status inválido'}), 400
                 fields['status'] = status
 
+            if 'credits' in data and data['credits'] is not None:
+                try:
+                    credits_val = max(int(data['credits']), 1)
+                    fields['credits'] = credits_val
+                except (TypeError, ValueError):
+                    return jsonify({'error': 'credits debe ser un entero positivo'}), 400
+
             if not fields:
                 return jsonify({'error': 'No hay campos válidos para actualizar'}), 400
 
@@ -233,9 +250,11 @@ class ServiceController:
             updated = db.session.execute(
                 text(
                     """
-                    SELECT id, title, description, owner_id, category, status, created_at
-                    FROM services
-                    WHERE id = :service_id
+                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits, s.status, s.created_at,
+                           u.name AS owner_name
+                    FROM services s
+                    LEFT JOIN users u ON s.owner_id = u.id
+                    WHERE s.id = :service_id
                     """
                 ),
                 {'service_id': service_id}
