@@ -3,15 +3,30 @@ Transaction Controller
 Maneja las peticiones relacionadas con transacciones
 """
 
+import json
+
 from flask import jsonify, request as flask_request
 from sqlalchemy import text
 
 from app import db
 from app.models.user import User
+from app.services.payment_service import PaymentService
 
 class TransactionController:
     def __init__(self):
-        pass
+        self.payment_service = PaymentService()
+
+    def _parse_metadata(self, raw_metadata):
+        if raw_metadata is None:
+            return None
+        if isinstance(raw_metadata, dict):
+            return raw_metadata
+        if isinstance(raw_metadata, str):
+            try:
+                return json.loads(raw_metadata)
+            except ValueError:
+                return None
+        return None
 
     def _serialize_transaction_row(self, row):
         return {
@@ -22,6 +37,7 @@ class TransactionController:
             'receiver_name': row.get('receiver_name'),
             'credits': row['credits'],
             'type': row['type'],
+            'metadata': self._parse_metadata(row.get('metadata')),
             'created_at': row['created_at'].isoformat() if row.get('created_at') else None
         }
 
@@ -32,6 +48,122 @@ class TransactionController:
         if hasattr(flask_request, 'user'):
             return flask_request.user.get('user_id')
         return None
+
+    def get_stripe_public_config(self):
+        """Devuelve configuración pública de Stripe para frontend"""
+        try:
+            config = self.payment_service.get_public_config()
+            return jsonify(config), 200
+        except Exception as e:
+            return jsonify({'error': f'Error obteniendo configuración de Stripe: {str(e)}'}), 500
+
+    def create_stripe_payment_intent(self, data):
+        """Crea un PaymentIntent de Stripe para compra de créditos"""
+        try:
+            current_user_id = self._current_user_id()
+            if not current_user_id:
+                return jsonify({'error': 'Usuario no autenticado'}), 401
+
+            data = data or {}
+
+            try:
+                credits = int(data.get('credits', 0))
+            except (TypeError, ValueError):
+                return jsonify({'error': 'credits debe ser un entero'}), 400
+
+            currency = data.get('currency')
+            intent_data = self.payment_service.create_payment_intent(current_user_id, credits, currency=currency)
+            return jsonify(intent_data), 201
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+        except Exception as e:
+            return jsonify({'error': f'Error creando PaymentIntent: {str(e)}'}), 500
+
+    def confirm_stripe_payment(self, data):
+        """Confirma un PaymentIntent de Stripe y acredita créditos al usuario"""
+        try:
+            current_user_id = self._current_user_id()
+            if not current_user_id:
+                return jsonify({'error': 'Usuario no autenticado'}), 401
+
+            data = data or {}
+            payment_intent_id = data.get('payment_intent_id')
+
+            validated_payment = self.payment_service.validate_successful_payment(payment_intent_id, current_user_id)
+
+            existing = db.session.execute(
+                text(
+                    """
+                    SELECT id, sender_id, receiver_id, credits, type, metadata, created_at
+                    FROM transactions
+                    WHERE type = 'purchase'
+                      AND JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.stripe_payment_intent_id')) = :payment_intent_id
+                    LIMIT 1
+                    """
+                ),
+                {'payment_intent_id': validated_payment['payment_intent_id']}
+            ).mappings().first()
+
+            if existing:
+                user = User.query.get(current_user_id)
+                return jsonify({
+                    'message': 'El pago ya estaba acreditado',
+                    'transaction': self._serialize_transaction_row(existing),
+                    'balance': user.balance if user else 0
+                }), 200
+
+            user = User.query.get(current_user_id)
+            if not user:
+                return jsonify({'error': 'Usuario no encontrado'}), 404
+
+            user.balance += validated_payment['credits']
+
+            metadata = {
+                'stripe_payment_intent_id': validated_payment['payment_intent_id'],
+                'amount_received': validated_payment['amount_received'],
+                'currency': validated_payment['currency']
+            }
+
+            result = db.session.execute(
+                text(
+                    """
+                    INSERT INTO transactions (sender_id, receiver_id, credits, type, metadata)
+                    VALUES (NULL, :receiver_id, :credits, 'purchase', :metadata)
+                    """
+                ),
+                {
+                    'receiver_id': current_user_id,
+                    'credits': validated_payment['credits'],
+                    'metadata': json.dumps(metadata)
+                }
+            )
+            transaction_id = result.lastrowid
+            db.session.commit()
+
+            tx = db.session.execute(
+                text(
+                    """
+                    SELECT t.id, t.sender_id, t.receiver_id, t.credits, t.type, t.metadata, t.created_at,
+                           su.name AS sender_name, ru.name AS receiver_name
+                    FROM transactions t
+                    LEFT JOIN users su ON t.sender_id = su.id
+                    LEFT JOIN users ru ON t.receiver_id = ru.id
+                    WHERE t.id = :transaction_id
+                    """
+                ),
+                {'transaction_id': transaction_id}
+            ).mappings().first()
+
+            return jsonify({
+                'message': 'Pago confirmado y créditos acreditados',
+                'transaction': self._serialize_transaction_row(tx),
+                'balance': user.balance
+            }), 200
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': f'Error confirmando pago de Stripe: {str(e)}'}), 500
     
     def get_transactions(self):
         """Obtiene lista de transacciones"""
@@ -63,7 +195,7 @@ class TransactionController:
             rows = db.session.execute(
                 text(
                     f"""
-                    SELECT t.id, t.sender_id, t.receiver_id, t.credits, t.type, t.created_at,
+                    SELECT t.id, t.sender_id, t.receiver_id, t.credits, t.type, t.metadata, t.created_at,
                            su.name AS sender_name, ru.name AS receiver_name
                     FROM transactions t
                     LEFT JOIN users su ON t.sender_id = su.id
@@ -97,7 +229,7 @@ class TransactionController:
             row = db.session.execute(
                 text(
                     """
-                    SELECT t.id, t.sender_id, t.receiver_id, t.credits, t.type, t.created_at,
+                    SELECT t.id, t.sender_id, t.receiver_id, t.credits, t.type, t.metadata, t.created_at,
                            su.name AS sender_name, ru.name AS receiver_name
                     FROM transactions t
                     LEFT JOIN users su ON t.sender_id = su.id
@@ -188,7 +320,7 @@ class TransactionController:
             tx = db.session.execute(
                 text(
                     """
-                    SELECT t.id, t.sender_id, t.receiver_id, t.credits, t.type, t.created_at,
+                    SELECT t.id, t.sender_id, t.receiver_id, t.credits, t.type, t.metadata, t.created_at,
                            su.name AS sender_name, ru.name AS receiver_name
                     FROM transactions t
                     LEFT JOIN users su ON t.sender_id = su.id
@@ -218,7 +350,7 @@ class TransactionController:
             rows = db.session.execute(
                 text(
                     """
-                    SELECT t.id, t.sender_id, t.receiver_id, t.credits, t.type, t.created_at,
+                    SELECT t.id, t.sender_id, t.receiver_id, t.credits, t.type, t.metadata, t.created_at,
                            su.name AS sender_name, ru.name AS receiver_name
                     FROM transactions t
                     LEFT JOIN users su ON t.sender_id = su.id

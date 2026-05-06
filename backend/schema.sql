@@ -50,6 +50,22 @@ CREATE TABLE IF NOT EXISTS `requests` (
   CONSTRAINT `fk_requests_provider` FOREIGN KEY (`provider_id`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Mensajes asociados a una solicitud
+CREATE TABLE IF NOT EXISTS `request_messages` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `request_id` INT NOT NULL,
+  `sender_id` INT NOT NULL,
+  `content` TEXT NOT NULL,
+  `read_at` DATETIME DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX `idx_request_messages_request` (`request_id`),
+  INDEX `idx_request_messages_sender` (`sender_id`),
+  INDEX `idx_request_messages_created_at` (`created_at`),
+  CONSTRAINT `fk_request_messages_request` FOREIGN KEY (`request_id`) REFERENCES `requests`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_request_messages_sender` FOREIGN KEY (`sender_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Transacciones de créditos
 CREATE TABLE IF NOT EXISTS `transactions` (
   `id` INT NOT NULL AUTO_INCREMENT,

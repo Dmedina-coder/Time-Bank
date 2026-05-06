@@ -164,3 +164,52 @@ Este documento proporciona una referencia rápida para todos los endpoints de la
     "per_page": 20
   }
   ```
+
+---
+
+## 4. Solicitudes (`/requests`)
+
+### **4.1 Listar solicitudes**
+
+- **Endpoint:** `GET /requests`
+- **Descripción:** Devuelve las solicitudes visibles para el usuario autenticado.
+- **Autenticación:** **Requerida**.
+
+### **4.2 Crear solicitud**
+
+- **Endpoint:** `POST /requests`
+- **Descripción:** Crea una nueva solicitud para un servicio.
+- **Autenticación:** **Requerida**.
+- **Cuerpo de la Petición (`application/json`):**
+  ```json
+  {
+    "service_id": 10,
+    "scheduled_date": "2026-05-08T18:30:00Z"
+  }
+  ```
+
+### **4.3 Obtener solicitud**
+
+- **Endpoint:** `GET /requests/<request_id>`
+- **Descripción:** Devuelve el detalle de una solicitud.
+- **Autenticación:** **Requerida**.
+
+### **4.4 Mensajería de la solicitud**
+
+- **Endpoint:** `GET /requests/<request_id>/messages`
+- **Descripción:** Lista los mensajes de una solicitud.
+- **Autenticación:** **Requerida**.
+
+- **Endpoint:** `POST /requests/<request_id>/messages`
+- **Descripción:** Envía un mensaje dentro de la solicitud.
+- **Autenticación:** **Requerida**.
+- **Cuerpo de la Petición (`application/json`):**
+  ```json
+  {
+    "content": "Hola, ¿te viene bien el martes a las 17:00?"
+  }
+  ```
+
+- **Endpoint:** `PUT /requests/<request_id>/messages/<message_id>/read`
+- **Descripción:** Marca un mensaje como leído.
+- **Autenticación:** **Requerida**.

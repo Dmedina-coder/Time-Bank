@@ -9,6 +9,7 @@ from app.controllers.user_controller import UserController
 from app.controllers.admin_controller import AdminController
 from app.controllers.service_controller import ServiceController
 from app.controllers.request_controller import RequestController
+from app.controllers.message_controller import MessageController
 from app.controllers.transaction_controller import TransactionController
 from app.middleware.auth_middleware import AuthMiddleware
 from app.services.auth_service import AuthService
@@ -25,6 +26,7 @@ user_controller = UserController()
 admin_controller = AdminController()
 service_controller = ServiceController()
 request_controller = RequestController()
+message_controller = MessageController()
 transaction_controller = TransactionController()
 
 # Rutas de autenticación
@@ -134,6 +136,21 @@ def complete_request(request_id):
     data['status'] = 'completed'
     return request_controller.update_request(request_id, data)
 
+@api.route('/requests/<int:request_id>/messages', methods=['GET'])
+@auth_middleware.require_auth
+def get_request_messages(request_id):
+    return message_controller.get_request_messages(request_id)
+
+@api.route('/requests/<int:request_id>/messages', methods=['POST'])
+@auth_middleware.require_auth
+def create_request_message(request_id):
+    return message_controller.create_request_message(request_id, request.get_json())
+
+@api.route('/requests/<int:request_id>/messages/<int:message_id>/read', methods=['PUT'])
+@auth_middleware.require_auth
+def mark_request_message_as_read(request_id, message_id):
+    return message_controller.mark_message_as_read(request_id, message_id)
+
 # Rutas de transacciones
 @api.route('/transactions', methods=['GET'])
 @auth_middleware.require_auth
@@ -154,6 +171,21 @@ def transfer_credits():
 @auth_middleware.require_auth
 def get_user_transactions(user_id):
     return transaction_controller.get_user_transactions(user_id)
+
+@api.route('/payments/stripe/config', methods=['GET'])
+@auth_middleware.require_auth
+def get_stripe_config():
+    return transaction_controller.get_stripe_public_config()
+
+@api.route('/payments/stripe/payment-intent', methods=['POST'])
+@auth_middleware.require_auth
+def create_stripe_payment_intent():
+    return transaction_controller.create_stripe_payment_intent(request.get_json())
+
+@api.route('/payments/stripe/confirm', methods=['POST'])
+@auth_middleware.require_auth
+def confirm_stripe_payment():
+    return transaction_controller.confirm_stripe_payment(request.get_json())
 
 # Rutas de administración
 @api.route('/admin/stats', methods=['GET'])

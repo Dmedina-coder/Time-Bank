@@ -316,6 +316,46 @@ export const getUserTransactions = async (userId, filters = {}) => {
   return response.json();
 };
 
+// ============ PAGOS STRIPE ============
+
+export const getStripeConfig = async () => {
+  const response = await fetch(`${API_URL}/payments/stripe/config`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al obtener configuración de Stripe');
+  }
+  return response.json();
+};
+
+export const createStripePaymentIntent = async ({ credits, currency }) => {
+  const response = await fetch(`${API_URL}/payments/stripe/payment-intent`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ credits, currency })
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al crear PaymentIntent');
+  }
+  return response.json();
+};
+
+export const confirmStripePayment = async (paymentIntentId) => {
+  const response = await fetch(`${API_URL}/payments/stripe/confirm`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ payment_intent_id: paymentIntentId })
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error confirmando pago con Stripe');
+  }
+  return response.json();
+};
+
 // ============ REVIEWS ============
 
 export const getServiceReviews = async (serviceId) => {
