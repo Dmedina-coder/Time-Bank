@@ -83,6 +83,15 @@ def get_service(service_id):
 def update_service(service_id):
     return service_controller.update_service(service_id, request.get_json())
 
+@api.route('/services/<int:service_id>/image', methods=['POST'])
+@auth_middleware.require_auth
+def upload_service_image(service_id):
+    return service_controller.upload_service_image(service_id)
+
+@api.route('/services/<int:service_id>/image', methods=['GET'])
+def get_service_image(service_id):
+    return service_controller.get_service_image(service_id)
+
 @api.route('/services/<int:service_id>', methods=['DELETE'])
 @auth_middleware.require_auth
 def delete_service(service_id):

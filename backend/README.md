@@ -61,7 +61,13 @@ La aplicación estará disponible en `http://localhost:5000`
 - `POST /api/services` - Crear servicio
 - `GET /api/services/:id` - Obtener servicio
 - `PUT /api/services/:id` - Actualizar servicio
+- `POST /api/services/:id/image` - Subir imagen del servicio (multipart/form-data, campo `image`)
+- `GET /api/services/:id/image` - Obtener imagen del servicio almacenada en DB
 - `DELETE /api/services/:id` - Eliminar servicio
+
+Para imágenes:
+- Se almacenan en la base de datos en `services.image_data` (binario).
+- Se guardan metadatos en `services.image_mime_type` y `services.image_filename`.
 
 ### Solicitudes
 - `GET /api/requests` - Listar solicitudes

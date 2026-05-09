@@ -3,14 +3,20 @@ Service Controller
 Maneja las peticiones relacionadas con servicios
 """
 
-from flask import jsonify, request as flask_request
+from flask import Response, jsonify, request as flask_request
 from sqlalchemy import text
 
 from app import db
 
 class ServiceController:
     def __init__(self):
-        pass
+        self.allowed_image_extensions = {'jpg', 'jpeg', 'png', 'webp', 'gif'}
+
+    def _is_allowed_image_filename(self, filename):
+        if not filename or '.' not in filename:
+            return False
+        extension = filename.rsplit('.', 1)[1].lower()
+        return extension in self.allowed_image_extensions
 
     def _serialize_service_row(self, row):
         return {
@@ -20,6 +26,7 @@ class ServiceController:
             'owner_id': row['owner_id'],
             'category': row['category'],
             'credits': row.get('credits', 1),
+            'has_image': bool(row.get('has_image')),
             'status': row['status'],
             'created_at': row['created_at'].isoformat() if row.get('created_at') else None,
             'owner_name': row.get('owner_name')
@@ -69,7 +76,9 @@ class ServiceController:
             rows = db.session.execute(
                 text(
                     f"""
-                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits, s.status, s.created_at, u.name AS owner_name
+                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits,
+                           (s.image_data IS NOT NULL) AS has_image,
+                           s.status, s.created_at, u.name AS owner_name
                     FROM services s
                     LEFT JOIN users u ON s.owner_id = u.id
                     WHERE {where_sql}
@@ -95,7 +104,9 @@ class ServiceController:
             row = db.session.execute(
                 text(
                     """
-                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits, s.status, s.created_at,
+                      SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits,
+                          (s.image_data IS NOT NULL) AS has_image,
+                          s.status, s.created_at,
                            u.name AS owner_name, u.email AS owner_email
                     FROM services s
                     LEFT JOIN users u ON s.owner_id = u.id
@@ -120,6 +131,7 @@ class ServiceController:
                 },
                 'category': row['category'],
                 'credits': row.get('credits', 1),
+                'has_image': bool(row.get('has_image')),
                 'status': row['status'],
                 'created_at': row['created_at'].isoformat() if row.get('created_at') else None
             }), 200
@@ -169,7 +181,9 @@ class ServiceController:
             service = db.session.execute(
                 text(
                     """
-                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits, s.status, s.created_at,
+                      SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits,
+                          (s.image_data IS NOT NULL) AS has_image,
+                          s.status, s.created_at,
                            u.name AS owner_name
                     FROM services s
                     LEFT JOIN users u ON s.owner_id = u.id
@@ -250,7 +264,9 @@ class ServiceController:
             updated = db.session.execute(
                 text(
                     """
-                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits, s.status, s.created_at,
+                      SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits,
+                          (s.image_data IS NOT NULL) AS has_image,
+                          s.status, s.created_at,
                            u.name AS owner_name
                     FROM services s
                     LEFT JOIN users u ON s.owner_id = u.id
@@ -264,6 +280,104 @@ class ServiceController:
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': f'Error actualizando servicio: {str(e)}'}), 500
+
+    def upload_service_image(self, service_id):
+        """Sube y guarda una imagen binaria para un servicio"""
+        try:
+            service = db.session.execute(
+                text("SELECT id, owner_id, status FROM services WHERE id = :service_id"),
+                {'service_id': service_id}
+            ).mappings().first()
+
+            if not service or service['status'] == 'deleted':
+                return jsonify({'error': 'Servicio no encontrado'}), 404
+
+            current_user_id = self._current_user_id()
+            if current_user_id and not self._is_admin() and int(service['owner_id']) != int(current_user_id):
+                return jsonify({'error': 'No autorizado para subir imagen a este servicio'}), 403
+
+            if 'image' not in flask_request.files:
+                return jsonify({'error': 'El campo image es requerido (multipart/form-data)'}), 400
+
+            image_file = flask_request.files.get('image')
+            if not image_file or not image_file.filename:
+                return jsonify({'error': 'Archivo de imagen no válido'}), 400
+
+            if not self._is_allowed_image_filename(image_file.filename):
+                return jsonify({'error': 'Formato de imagen no soportado. Usa jpg, jpeg, png, webp o gif'}), 400
+
+            image_bytes = image_file.read()
+            if not image_bytes:
+                return jsonify({'error': 'La imagen está vacía'}), 400
+
+            mime_type = image_file.mimetype or 'application/octet-stream'
+
+            db.session.execute(
+                text(
+                    """
+                    UPDATE services
+                    SET image_data = :image_data,
+                        image_mime_type = :image_mime_type,
+                        image_filename = :image_filename
+                    WHERE id = :service_id
+                    """
+                ),
+                {
+                    'image_data': image_bytes,
+                    'image_mime_type': mime_type,
+                    'image_filename': image_file.filename,
+                    'service_id': service_id
+                }
+            )
+
+            db.session.commit()
+
+            updated = db.session.execute(
+                text(
+                    """
+                    SELECT s.id, s.title, s.description, s.owner_id, s.category, s.credits,
+                           (s.image_data IS NOT NULL) AS has_image,
+                           s.status, s.created_at,
+                           u.name AS owner_name
+                    FROM services s
+                    LEFT JOIN users u ON s.owner_id = u.id
+                    WHERE s.id = :service_id
+                    """
+                ),
+                {'service_id': service_id}
+            ).mappings().first()
+
+            return jsonify(self._serialize_service_row(updated)), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': f'Error subiendo imagen del servicio: {str(e)}'}), 500
+
+    def get_service_image(self, service_id):
+        """Devuelve la imagen binaria almacenada en base de datos para un servicio"""
+        try:
+            row = db.session.execute(
+                text(
+                    """
+                    SELECT image_data, image_mime_type, image_filename, status
+                    FROM services
+                    WHERE id = :service_id
+                    """
+                ),
+                {'service_id': service_id}
+            ).mappings().first()
+
+            if not row or row['status'] == 'deleted':
+                return jsonify({'error': 'Servicio no encontrado'}), 404
+
+            if not row.get('image_data'):
+                return jsonify({'error': 'El servicio no tiene imagen'}), 404
+
+            response = Response(row['image_data'], mimetype=row.get('image_mime_type') or 'application/octet-stream')
+            filename = row.get('image_filename') or f'service_{service_id}_image'
+            response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+            return response
+        except Exception as e:
+            return jsonify({'error': f'Error obteniendo imagen del servicio: {str(e)}'}), 500
     
     def delete_service(self, service_id):
         """Elimina un servicio"""
