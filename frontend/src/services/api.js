@@ -177,6 +177,25 @@ export const deleteService = async (serviceId) => {
   return response.json();
 };
 
+export const getServiceImageUrl = (serviceId) =>
+  `${API_URL}/services/${serviceId}/image`;
+
+export const uploadServiceImage = async (serviceId, file) => {
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  formData.append('image', file);
+  const response = await fetch(`${API_URL}/services/${serviceId}/image`, {
+    method: 'POST',
+    headers: { Authorization: token ? `Bearer ${token}` : '' },
+    body: formData
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al subir la imagen');
+  }
+  return response.json();
+};
+
 // ============ SOLICITUDES ============
 
 export const getRequests = async (filters = {}) => {

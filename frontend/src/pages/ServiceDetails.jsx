@@ -20,6 +20,30 @@ const ServiceDetails = () => {
   const [requesting, setRequesting] = useState(false);
   const [requestSuccess, setRequestSuccess] = useState(false);
 
+  // Subida de imagen
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState(null);
+  const [imageSuccess, setImageSuccess] = useState(false);
+  const imageInputRef = React.useRef(null);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingImage(true);
+      setImageError(null);
+      setImageSuccess(false);
+      const updated = await api.uploadServiceImage(id, file);
+      setService(prev => ({ ...prev, has_image: updated.has_image }));
+      setImageSuccess(true);
+    } catch (err) {
+      setImageError(err.message);
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
   useEffect(() => {
     const fetchService = async () => {
       try {
@@ -76,6 +100,15 @@ const ServiceDetails = () => {
       </div>
 
       <div className="service-details-card">
+        {service.has_image && (
+          <div className="service-details-image">
+            <img
+              src={api.getServiceImageUrl(id)}
+              alt={service.title}
+              onError={e => { e.target.closest('.service-details-image').style.display = 'none'; }}
+            />
+          </div>
+        )}
         <div className="service-details-header">
           <div>
             <span className="service-category-badge">{service.category}</span>
@@ -114,7 +147,25 @@ const ServiceDetails = () => {
               </button>
             )}
             {isOwner && (
-              <Link to="/services" className="btn-outline">Gestionar mis servicios</Link>
+              <>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  ref={imageInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleImageUpload}
+                />
+                <button
+                  className="btn-outline"
+                  onClick={() => { setImageError(null); setImageSuccess(false); imageInputRef.current?.click(); }}
+                  disabled={uploadingImage}
+                >
+                  {uploadingImage ? 'Subiendo...' : (service.has_image ? '🖼 Cambiar imagen' : '🖼 Subir imagen')}
+                </button>
+                {imageError && <span className="alert alert-error" style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem' }}>{imageError}</span>}
+                {imageSuccess && <span className="alert alert-success" style={{ fontSize: '0.85rem', padding: '0.3rem 0.7rem' }}>¡Imagen actualizada!</span>}
+                <Link to="/services" className="btn-outline">Gestionar mis servicios</Link>
+              </>
             )}
           </div>
         </div>

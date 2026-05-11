@@ -52,6 +52,25 @@
   gap: 1.25rem;
 }
 
+/* ── Card image ── */
+.service-card-image {
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: #f1f5f9;
+}
+.service-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s;
+}
+.service-card-item:hover .service-card-image img {
+  transform: scale(1.04);
+}
+
 /* ── Card ── */
 .service-card-item {
   background: var(--card);

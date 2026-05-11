@@ -151,6 +151,15 @@ const Services = () => {
           <div className="services-grid">
             {services.map(service => (
               <div key={service.id} className="service-card-item">
+                {service.has_image && (
+                  <div className="service-card-image">
+                    <img
+                      src={api.getServiceImageUrl(service.id)}
+                      alt={service.title}
+                      onError={e => { e.target.closest('.service-card-image').style.display = 'none'; }}
+                    />
+                  </div>
+                )}
                 <div className="service-card-body">
                   <div className="service-card-top">
                     <span className="service-category">{service.category}</span>
