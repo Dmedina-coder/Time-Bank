@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import * as api from '../services/api';
+import RequestChat from '../components/RequestChat';
 import './Requests.css';
 
 const STATUS_LABELS = {
@@ -33,6 +34,7 @@ const Requests = () => {
   const [error, setError] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null); // requestId being processed
+  const [chatRequest, setChatRequest] = useState(null); // solicitud con chat abierto
 
   const fetchRequests = async () => {
     try {
@@ -191,7 +193,13 @@ const Requests = () => {
                               {actionLoading === req.id ? '...' : label}
                             </button>
                           ))}
-                          {actions.length === 0 && <span className="no-actions">—</span>}
+                          <button
+                            className="btn-action btn-chat"
+                            onClick={() => setChatRequest(req)}
+                            title="Abrir chat"
+                          >
+                            💬 Mensajes
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -213,6 +221,12 @@ const Requests = () => {
             </div>
           )}
         </>
+      )}
+      {chatRequest && (
+        <RequestChat
+          request={chatRequest}
+          onClose={() => setChatRequest(null)}
+        />
       )}
     </div>
   );

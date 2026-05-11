@@ -335,6 +335,46 @@ export const getUserTransactions = async (userId, filters = {}) => {
   return response.json();
 };
 
+// ============ MENSAJERÍA DE SOLICITUDES ============
+
+export const getRequestMessages = async (requestId, filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.page) params.append('page', filters.page);
+  if (filters.per_page) params.append('per_page', filters.per_page);
+  const url = `${API_URL}/requests/${requestId}/messages${params.toString() ? '?' + params.toString() : ''}`;
+  const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al obtener mensajes');
+  }
+  return response.json();
+};
+
+export const sendRequestMessage = async (requestId, content) => {
+  const response = await fetch(`${API_URL}/requests/${requestId}/messages`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ content })
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al enviar el mensaje');
+  }
+  return response.json();
+};
+
+export const markMessageAsRead = async (requestId, messageId) => {
+  const response = await fetch(`${API_URL}/requests/${requestId}/messages/${messageId}/read`, {
+    method: 'PUT',
+    headers: getAuthHeaders()
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Error al marcar mensaje como leído');
+  }
+  return response.json();
+};
+
 // ============ PAGOS STRIPE ============
 
 export const getStripeConfig = async () => {
