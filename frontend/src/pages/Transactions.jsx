@@ -5,7 +5,7 @@ import './Transactions.css';
 
 const TYPE_LABELS = {
   transfer: 'Transferencia',
-  purchase: 'Pago de servicio',
+  purchase: 'Compra de créditos',
   refund: 'Reembolso',
   system: 'Sistema'
 };
@@ -143,6 +143,7 @@ const Transactions = () => {
                   <th>De</th>
                   <th>Para</th>
                   <th>Créditos</th>
+                  <th>Detalles</th>
                   <th>Fecha</th>
                 </tr>
               </thead>
@@ -173,6 +174,16 @@ const Transactions = () => {
                         <span className={`credit-chip ${isSender ? 'credit-out' : 'credit-in'}`}>
                           {isSender ? '-' : '+'}{tx.credits}
                         </span>
+                      </td>
+                      <td className="tx-meta">
+                        {tx.type === 'purchase' && tx.metadata?.stripe_payment_intent_id && (
+                          <span className="meta-stripe" title={tx.metadata.stripe_payment_intent_id}>
+                            💳 Stripe
+                            {tx.metadata.amount_received && (
+                              <> &middot; {(tx.metadata.amount_received / 100).toFixed(2)} {(tx.metadata.currency || 'eur').toUpperCase()}</>
+                            )}
+                          </span>
+                        )}
                       </td>
                       <td className="tx-date">{formatDate(tx.created_at)}</td>
                     </tr>

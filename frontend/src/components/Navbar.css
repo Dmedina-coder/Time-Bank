@@ -68,6 +68,16 @@
   text-decoration: none;
 }
 
+.nav-buy-credits {
+  background: rgba(124,58,237,0.25) !important;
+  color: #c4b5fd !important;
+  border: 1px solid rgba(167,139,250,0.3) !important;
+}
+.nav-buy-credits:hover {
+  background: rgba(124,58,237,0.5) !important;
+  color: white !important;
+}
+
 .nav-divider {
   width: 1px;
   height: 22px;

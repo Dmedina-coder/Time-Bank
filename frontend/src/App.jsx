@@ -13,6 +13,7 @@ import ServiceDetails from './pages/ServiceDetails';
 import Requests from './pages/Requests';
 import Transactions from './pages/Transactions';
 import AdminPanel from './pages/AdminPanel';
+import BuyCredits from './pages/BuyCredits';
 
 import './App.css';
 
@@ -69,6 +70,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Transactions />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/buy-credits" 
+                element={
+                  <ProtectedRoute>
+                    <BuyCredits />
                   </ProtectedRoute>
                 } 
               />
