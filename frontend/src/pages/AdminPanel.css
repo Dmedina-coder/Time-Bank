@@ -51,7 +51,6 @@
   transition: box-shadow 0.2s, transform 0.15s;
 }
 .stat-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
-.stat-icon { font-size: 1.6rem; }
 .stat-value { font-size: 2rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.03em; }
 .stat-label { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
 

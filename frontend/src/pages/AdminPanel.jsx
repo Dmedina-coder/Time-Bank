@@ -173,6 +173,24 @@ const AdminPanel = () => {
   const sumByStatus = (obj) =>
     Object.values(obj ?? {}).reduce((a, b) => a + b, 0);
 
+  const translateStatus = (status) => {
+    const map = {
+      active: 'Activo',
+      inactive: 'Inactivo',
+      deleted: 'Eliminado',
+      pending: 'Pendiente',
+      accepted: 'Aceptada',
+      rejected: 'Rechazada',
+      completed: 'Completada',
+      cancelled: 'Cancelada',
+      transfer: 'Transferencia',
+      purchase: 'Compra',
+      refund: 'Reembolso',
+      system: 'Sistema',
+    };
+    return map[status] ?? status;
+  };
+
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
@@ -187,19 +205,19 @@ const AdminPanel = () => {
         <button
           className={`tab-btn${activeTab === 'stats' ? ' active' : ''}`}
           onClick={() => setActiveTab('stats')}
-        >📊 Estadísticas</button>
+        >Estadísticas</button>
         <button
           className={`tab-btn${activeTab === 'users' ? ' active' : ''}`}
           onClick={() => setActiveTab('users')}
-        >👥 Usuarios</button>
+        >Usuarios</button>
         <button
           className={`tab-btn${activeTab === 'services' ? ' active' : ''}`}
           onClick={() => setActiveTab('services')}
-        >🛠 Servicios</button>
+        >Servicios</button>
         <button
           className={`tab-btn${activeTab === 'transactions' ? ' active' : ''}`}
           onClick={() => setActiveTab('transactions')}
-        >💳 Transacciones</button>
+        >Transacciones</button>
       </div>
 
       {/* ── Stats ── */}
@@ -210,39 +228,32 @@ const AdminPanel = () => {
             <>
               <div className="stats-grid">
                 <div className="stat-card">
-                  <div className="stat-icon">👥</div>
                   <div className="stat-value">{stats.users?.total ?? 0}</div>
-                  <div className="stat-label">Usuarios totales</div>
+                  <div className="stat-label">Usuarios registrados</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon">🛡️</div>
                   <div className="stat-value">{stats.users?.admins ?? 0}</div>
                   <div className="stat-label">Administradores</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon">🛠</div>
                   <div className="stat-value">{sumByStatus(stats.services?.by_status)}</div>
                   <div className="stat-label">Servicios totales</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon">✅</div>
                   <div className="stat-value">{stats.services?.by_status?.active ?? 0}</div>
                   <div className="stat-label">Servicios activos</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon">📋</div>
                   <div className="stat-value">{sumByStatus(stats.requests?.by_status)}</div>
                   <div className="stat-label">Solicitudes totales</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon">⏱️</div>
                   <div className="stat-value">{stats.transactions?.total ?? 0}</div>
                   <div className="stat-label">Transacciones</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-icon">💰</div>
-                  <div className="stat-value">{stats.transactions?.credits_sum ?? 0}</div>
-                  <div className="stat-label">Créditos movidos</div>
+                  <div className="stat-value">{stats.transactions?.credits_sum ?? 0} cr</div>
+                  <div className="stat-label">Créditos en circulación</div>
                 </div>
               </div>
 
@@ -251,7 +262,7 @@ const AdminPanel = () => {
                 {Object.entries(stats.requests?.by_status ?? {}).map(([status, count]) => (
                   <div className="stat-card" key={status}>
                     <div className="stat-value">{count}</div>
-                    <div className="stat-label">{status}</div>
+                    <div className="stat-label">{translateStatus(status)}</div>
                   </div>
                 ))}
               </div>
@@ -311,7 +322,7 @@ const AdminPanel = () => {
                               {u.is_active !== false ? 'Activo' : 'Inactivo'}
                             </span>
                           </td>
-                          <td><span className="balance-chip">⏱ {u.balance}</span></td>
+                          <td><span className="balance-chip">{u.balance} cr</span></td>
                           <td className="tx-date">{formatDate(u.created_at)}</td>
                           <td>
                             <div className="action-buttons">
@@ -368,8 +379,8 @@ const AdminPanel = () => {
                         <td className="tx-id">{s.id}</td>
                         <td><strong>{s.title}</strong></td>
                         <td style={{ color: 'var(--text-secondary)' }}>{s.category || '—'}</td>
-                        <td>⏱ {s.credits ?? 1}</td>
-                        <td><span className={`status-badge status-${s.status}`}>{s.status}</span></td>
+                        <td>{s.credits ?? 1} cr</td>
+                        <td><span className={`status-badge status-${s.status}`}>{translateStatus(s.status)}</span></td>
                         <td style={{ color: 'var(--text-secondary)' }}>{s.owner_name || `#${s.owner_id}`}</td>
                         <td>
                           <div className="action-buttons">
@@ -423,10 +434,10 @@ const AdminPanel = () => {
                     : transactions.map(tx => (
                       <tr key={tx.id}>
                         <td className="tx-id">{tx.id}</td>
-                        <td><span className={`status-badge status-${tx.type}`}>{tx.type}</span></td>
+                        <td><span className={`status-badge status-${tx.type}`}>{translateStatus(tx.type)}</span></td>
                         <td style={{ color: 'var(--text-secondary)' }}>{tx.sender_name || (tx.sender_id ? `#${tx.sender_id}` : '—')}</td>
                         <td style={{ color: 'var(--text-secondary)' }}>{tx.receiver_name || (tx.receiver_id ? `#${tx.receiver_id}` : '—')}</td>
-                        <td><span className="balance-chip">⏱ {tx.credits}</span></td>
+                        <td><span className="balance-chip">{tx.credits} cr</span></td>
                         <td className="tx-date">{formatDate(tx.created_at)}</td>
                       </tr>
                     ))
@@ -452,7 +463,7 @@ const AdminPanel = () => {
             <form className="modal-form" onSubmit={handleAdjustCredits}>
               <p className="credit-modal-info">
                 Usuario: <strong>{creditModal.name}</strong> — Saldo actual:{' '}
-                <strong>⏱ {creditModal.balance}</strong>
+                <strong>{creditModal.balance} cr</strong>
               </p>
               {creditError && <div className="alert alert-error">{creditError}</div>}
               <div className="form-group">
