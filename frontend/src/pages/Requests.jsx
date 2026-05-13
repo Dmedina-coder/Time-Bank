@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import * as api from '../services/api';
 import RequestChat from '../components/RequestChat';
@@ -23,6 +23,7 @@ const STATUS_CLASSES = {
 
 const Requests = () => {
   const { user } = useContext(AuthContext);
+  const location = useLocation();
 
   const [requests, setRequests] = useState([]);
   const [total, setTotal] = useState(0);
@@ -35,6 +36,7 @@ const Requests = () => {
   const [actionError, setActionError] = useState(null);
   const [actionLoading, setActionLoading] = useState(null); // requestId being processed
   const [chatRequest, setChatRequest] = useState(null); // solicitud con chat abierto
+  const [pendingOpenId, setPendingOpenId] = useState(location.state?.openRequestId || null);
 
   const fetchRequests = async () => {
     try {
@@ -57,6 +59,17 @@ const Requests = () => {
   useEffect(() => {
     fetchRequests();
   }, [statusFilter, page]);
+
+  // Abrir chat automáticamente si venimos del popover de notificaciones
+  useEffect(() => {
+    if (pendingOpenId && requests.length > 0) {
+      const target = requests.find(r => r.id === pendingOpenId);
+      if (target) {
+        setChatRequest(target);
+        setPendingOpenId(null);
+      }
+    }
+  }, [requests, pendingOpenId]);
 
   const handleAction = async (requestId, action) => {
     try {
