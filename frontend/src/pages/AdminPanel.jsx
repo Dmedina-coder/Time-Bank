@@ -3,9 +3,11 @@ import {
   getAdminStats,
   getAllUsers,
   adminAdjustCredits,
+  adminToggleUserStatus,
   getServices,
   adminApproveService,
   adminRejectService,
+  adminGetAllTransactions,
 } from '../services/api';
 import './AdminPanel.css';
 
@@ -24,6 +26,10 @@ const AdminPanel = () => {
   // Services
   const [services, setServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(false);
+
+  // Transactions
+  const [transactions, setTransactions] = useState([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
 
   // Credit modal
   const [creditModal, setCreditModal] = useState(null);
@@ -75,12 +81,26 @@ const AdminPanel = () => {
     }
   }, []);
 
+  const fetchTransactions = useCallback(async () => {
+    try {
+      setLoadingTransactions(true);
+      setError(null);
+      const data = await adminGetAllTransactions({ per_page: 100 });
+      setTransactions(data.items ?? []);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  }, []);
+
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
   useEffect(() => {
     if (activeTab === 'users') fetchUsers();
     if (activeTab === 'services') fetchServices();
-  }, [activeTab, fetchUsers, fetchServices]);
+    if (activeTab === 'transactions') fetchTransactions();
+  }, [activeTab, fetchUsers, fetchServices, fetchTransactions]);
 
   // ── Handlers ────────────────────────────────────────────────────────────
 
@@ -135,6 +155,16 @@ const AdminPanel = () => {
     }
   };
 
+  const handleToggleStatus = async (userId) => {
+    try {
+      setError(null);
+      await adminToggleUserStatus(userId);
+      fetchUsers(userSearch);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   const formatDate = (iso) => {
     if (!iso) return '—';
     return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -166,6 +196,10 @@ const AdminPanel = () => {
           className={`tab-btn${activeTab === 'services' ? ' active' : ''}`}
           onClick={() => setActiveTab('services')}
         >🛠 Servicios</button>
+        <button
+          className={`tab-btn${activeTab === 'transactions' ? ' active' : ''}`}
+          onClick={() => setActiveTab('transactions')}
+        >💳 Transacciones</button>
       </div>
 
       {/* ── Stats ── */}
@@ -257,6 +291,7 @@ const AdminPanel = () => {
                       <th>Nombre</th>
                       <th>Email</th>
                       <th>Rol</th>
+                      <th>Estado</th>
                       <th>Saldo</th>
                       <th>Registro</th>
                       <th>Acciones</th>
@@ -264,22 +299,37 @@ const AdminPanel = () => {
                   </thead>
                   <tbody>
                     {users.length === 0
-                      ? <tr><td colSpan={7} className="empty-cell">No se encontraron usuarios</td></tr>
+                      ? <tr><td colSpan={8} className="empty-cell">No se encontraron usuarios</td></tr>
                       : users.map(u => (
                         <tr key={u.id}>
                           <td className="tx-id">{u.id}</td>
                           <td><strong>{u.name}</strong></td>
                           <td style={{ color: 'var(--text-secondary)' }}>{u.email}</td>
                           <td><span className={`role-badge role-${u.role}`}>{u.role}</span></td>
+                          <td>
+                            <span className={`status-badge ${u.is_active !== false ? 'status-active' : 'status-inactive'}`}>
+                              {u.is_active !== false ? 'Activo' : 'Inactivo'}
+                            </span>
+                          </td>
                           <td><span className="balance-chip">⏱ {u.balance}</span></td>
                           <td className="tx-date">{formatDate(u.created_at)}</td>
                           <td>
-                            <button
-                              className="btn-primary btn-sm"
-                              onClick={() => openCreditModal(u)}
-                            >
-                              Ajustar créditos
-                            </button>
+                            <div className="action-buttons">
+                              <button
+                                className="btn-primary btn-sm"
+                                onClick={() => openCreditModal(u)}
+                              >
+                                Ajustar créditos
+                              </button>
+                              {u.role !== 'admin' && (
+                                <button
+                                  className={u.is_active !== false ? 'btn-danger btn-sm' : 'btn-success btn-sm'}
+                                  onClick={() => handleToggleStatus(u.id)}
+                                >
+                                  {u.is_active !== false ? 'Desactivar' : 'Activar'}
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -341,6 +391,43 @@ const AdminPanel = () => {
                             )}
                           </div>
                         </td>
+                      </tr>
+                    ))
+                  }
+                </tbody>
+              </table>
+            </div>
+          )
+      )}
+
+      {/* ── Transactions ── */}
+      {activeTab === 'transactions' && (
+        loadingTransactions
+          ? <div className="loading-state">Cargando transacciones...</div>
+          : (
+            <div className="admin-table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Tipo</th>
+                    <th>Emisor</th>
+                    <th>Receptor</th>
+                    <th>Créditos</th>
+                    <th>Fecha</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.length === 0
+                    ? <tr><td colSpan={6} className="empty-cell">No hay transacciones</td></tr>
+                    : transactions.map(tx => (
+                      <tr key={tx.id}>
+                        <td className="tx-id">{tx.id}</td>
+                        <td><span className={`status-badge status-${tx.type}`}>{tx.type}</span></td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{tx.sender_name || (tx.sender_id ? `#${tx.sender_id}` : '—')}</td>
+                        <td style={{ color: 'var(--text-secondary)' }}>{tx.receiver_name || (tx.receiver_id ? `#${tx.receiver_id}` : '—')}</td>
+                        <td><span className="balance-chip">⏱ {tx.credits}</span></td>
+                        <td className="tx-date">{formatDate(tx.created_at)}</td>
                       </tr>
                     ))
                   }

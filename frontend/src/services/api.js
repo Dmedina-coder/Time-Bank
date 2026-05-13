@@ -479,6 +479,18 @@ export const adminAdjustCredits = async (userId, amount) => {
   return response.json();
 };
 
+export const adminToggleUserStatus = async (userId) => {
+  const response = await fetch(`${API_URL}/admin/users/${userId}/toggle-status`, {
+    method: 'PUT',
+    headers: getAuthHeaders()
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al cambiar estado del usuario');
+  }
+  return response.json();
+};
+
 export const adminApproveService = async (serviceId) => {
   const response = await fetch(`${API_URL}/admin/services/${serviceId}/approve`, {
     method: 'PUT',
@@ -499,6 +511,19 @@ export const adminRejectService = async (serviceId) => {
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.error || 'Error al desactivar servicio');
+  }
+  return response.json();
+};
+
+export const adminGetAllTransactions = async (filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.page) params.append('page', filters.page);
+  if (filters.per_page) params.append('per_page', filters.per_page);
+  if (filters.type) params.append('type', filters.type);
+  const url = `${API_URL}/transactions${params.toString() ? '?' + params.toString() : ''}`;
+  const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+  if (!response.ok) {
+    throw new Error('Error al obtener transacciones');
   }
   return response.json();
 };
