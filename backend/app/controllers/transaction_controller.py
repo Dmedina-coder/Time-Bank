@@ -4,7 +4,9 @@ Maneja las peticiones relacionadas con transacciones
 """
 
 import json
+import os
 
+import stripe
 from flask import jsonify, request as flask_request
 from sqlalchemy import text
 
@@ -370,3 +372,98 @@ class TransactionController:
             }), 200
         except Exception as e:
             return jsonify({'error': f'Error obteniendo transacciones de usuario: {str(e)}'}), 500
+
+    def handle_stripe_webhook(self, raw_payload, sig_header):
+        """Procesa eventos de webhook de Stripe con validación de firma"""
+        webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+
+        if not webhook_secret or webhook_secret == 'whsec_':
+            # Sin secreto configurado: modo desarrollo, aceptar sin firma
+            try:
+                event = json.loads(raw_payload)
+            except Exception:
+                return jsonify({'error': 'Payload inválido'}), 400
+        else:
+            try:
+                event = stripe.Webhook.construct_event(
+                    raw_payload, sig_header, webhook_secret
+                )
+            except ValueError:
+                return jsonify({'error': 'Payload inválido'}), 400
+            except stripe.error.SignatureVerificationError:
+                return jsonify({'error': 'Firma inválida'}), 400
+
+        event_type = event.get('type') if isinstance(event, dict) else event['type']
+
+        if event_type == 'payment_intent.succeeded':
+            data_obj = event['data']['object']
+            payment_intent_id = data_obj['id']
+            amount_received = data_obj.get('amount_received') or data_obj.get('amount', 0)
+            currency = data_obj.get('currency', '')
+            metadata = data_obj.get('metadata', {})
+
+            user_id_raw = metadata.get('user_id')
+            credits_raw = metadata.get('credits')
+
+            if not user_id_raw or not credits_raw:
+                return jsonify({'error': 'Metadata incompleta en PaymentIntent'}), 422
+
+            try:
+                user_id = int(user_id_raw)
+                credits = int(credits_raw)
+            except (TypeError, ValueError):
+                return jsonify({'error': 'Metadata inválida en PaymentIntent'}), 422
+
+            if credits <= 0:
+                return jsonify({'error': 'Créditos inválidos'}), 422
+
+            try:
+                existing = db.session.execute(
+                    text(
+                        """
+                        SELECT id FROM transactions
+                        WHERE type = 'purchase'
+                          AND JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.stripe_payment_intent_id')) = :pid
+                        LIMIT 1
+                        """
+                    ),
+                    {'pid': payment_intent_id}
+                ).mappings().first()
+
+                if existing:
+                    return jsonify({'message': 'Evento ya procesado'}), 200
+
+                user = User.query.get(user_id)
+                if not user:
+                    return jsonify({'error': 'Usuario no encontrado'}), 404
+
+                user.balance += credits
+
+                tx_metadata = {
+                    'stripe_payment_intent_id': payment_intent_id,
+                    'amount_received': amount_received,
+                    'currency': currency,
+                    'source': 'webhook'
+                }
+
+                db.session.execute(
+                    text(
+                        """
+                        INSERT INTO transactions (sender_id, receiver_id, credits, type, metadata)
+                        VALUES (NULL, :receiver_id, :credits, 'purchase', :metadata)
+                        """
+                    ),
+                    {
+                        'receiver_id': user_id,
+                        'credits': credits,
+                        'metadata': json.dumps(tx_metadata)
+                    }
+                )
+                db.session.commit()
+                return jsonify({'message': 'Créditos acreditados correctamente'}), 200
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'error': f'Error procesando evento: {str(e)}'}), 500
+
+        # Otros eventos: devolver 200 para que Stripe no reintente
+        return jsonify({'message': 'Evento recibido'}), 200
