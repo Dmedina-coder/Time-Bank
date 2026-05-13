@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import * as api from '../services/api';
+import ReviewComponent, { StarRating } from '../components/ReviewComponent';
 import './ServiceDetails.css';
 
 const ServiceDetails = () => {
@@ -25,6 +26,15 @@ const ServiceDetails = () => {
   const [imageError, setImageError] = useState(null);
   const [imageSuccess, setImageSuccess] = useState(false);
   const imageInputRef = React.useRef(null);
+
+  // Reviews
+  const [reviews, setReviews] = useState([]);
+  const [avgRating, setAvgRating] = useState(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' });
+  const [reviewError, setReviewError] = useState(null);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [canReview, setCanReview] = useState(false);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -59,6 +69,36 @@ const ServiceDetails = () => {
     fetchService();
   }, [id]);
 
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const data = await api.getServiceReviews(id);
+        setReviews(data.items ?? []);
+        setAvgRating(data.avg_rating ?? null);
+      } catch {
+        // silencioso
+      }
+    };
+    fetchReviews();
+  }, [id, reviewSuccess]);
+
+  useEffect(() => {
+    if (!user || !service) return;
+    if (user.id === service.owner_id) return;
+    const checkCanReview = async () => {
+      try {
+        const requests = await api.getRequests({ status: 'completed', service_id: id });
+        const items = requests.items ?? [];
+        const userCompleted = items.some(r => r.requester_id === user.id);
+        const alreadyReviewed = reviews.some(r => r.reviewer_id === user.id);
+        setCanReview(userCompleted && !alreadyReviewed);
+      } catch {
+        setCanReview(false);
+      }
+    };
+    checkCanReview();
+  }, [user, service, id, reviews]);
+
   const handleRequestSubmit = async (e) => {
     e.preventDefault();
     if (!scheduledDate) {
@@ -83,6 +123,26 @@ const ServiceDetails = () => {
 
   const isOwner = user && service && user.id === service.owner_id;
   const canRequest = user && service && !isOwner && service.status === 'active';
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    setReviewError(null);
+    try {
+      setSubmittingReview(true);
+      await api.createReview({
+        service_id: parseInt(id),
+        rating: reviewForm.rating,
+        comment: reviewForm.comment
+      });
+      setReviewSuccess(true);
+      setReviewForm({ rating: 5, comment: '' });
+      setCanReview(false);
+    } catch (err) {
+      setReviewError(err.message);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   if (loading) return <div className="loading-state">Cargando servicio...</div>;
   if (error) return (
@@ -169,6 +229,66 @@ const ServiceDetails = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Sección de valoraciones */}
+      <div className="reviews-section">
+        <div className="reviews-section-header">
+          <h2>Valoraciones</h2>
+          {avgRating !== null && (
+            <div className="avg-rating">
+              <StarRating rating={Math.round(avgRating)} />
+              <span className="avg-rating-value">{avgRating} / 5</span>
+              <span className="avg-rating-count">({reviews.length} {reviews.length === 1 ? 'valoración' : 'valoraciones'})</span>
+            </div>
+          )}
+        </div>
+
+        {canReview && !reviewSuccess && (
+          <form className="review-form" onSubmit={handleReviewSubmit}>
+            <h3>Deja tu valoración</h3>
+            {reviewError && <div className="alert alert-error">{reviewError}</div>}
+            <div className="form-group">
+              <label>Puntuación</label>
+              <div className="star-selector">
+                {[1, 2, 3, 4, 5].map(n => (
+                  <button
+                    type="button"
+                    key={n}
+                    className={`star-btn ${n <= reviewForm.rating ? 'filled' : ''}`}
+                    onClick={() => setReviewForm(f => ({ ...f, rating: n }))}
+                    aria-label={`${n} estrellas`}
+                  >★</button>
+                ))}
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Comentario (opcional)</label>
+              <textarea
+                value={reviewForm.comment}
+                onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
+                placeholder="Describe tu experiencia con este servicio..."
+                rows={3}
+                maxLength={1000}
+              />
+            </div>
+            <button type="submit" className="btn-primary" disabled={submittingReview}>
+              {submittingReview ? 'Enviando...' : 'Publicar valoración'}
+            </button>
+          </form>
+        )}
+
+        {reviewSuccess && (
+          <div className="alert alert-success">¡Gracias por tu valoración!</div>
+        )}
+
+        {reviews.length === 0 ? (
+          <p className="no-reviews">Aún no hay valoraciones para este servicio.</p>
+        ) : (
+          <div className="reviews-list">
+            {reviews.map(r => <ReviewComponent key={r.id} review={r} />)}
+          </div>
+        )}
       </div>
 
       {/* Modal solicitar */}
