@@ -188,3 +188,27 @@ class AdminController:
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': f'Error gestionando créditos: {str(e)}'}), 500
+
+    def toggle_user_status(self, user_id, request_user_id):
+        """Activa o desactiva un usuario"""
+        try:
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({'error': 'Usuario no encontrado'}), 404
+
+            if user.role == 'admin':
+                return jsonify({'error': 'No puedes desactivar a un administrador'}), 403
+
+            if int(user_id) == int(request_user_id):
+                return jsonify({'error': 'No puedes desactivarte a ti mismo'}), 403
+
+            user.is_active = not (user.is_active if user.is_active is not None else True)
+            db.session.commit()
+
+            return jsonify({
+                'message': f"Usuario {'activado' if user.is_active else 'desactivado'} correctamente",
+                'user': user.to_dict()
+            }), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': f'Error cambiando estado del usuario: {str(e)}'}), 500
