@@ -375,6 +375,15 @@ export const markMessageAsRead = async (requestId, messageId) => {
   return response.json();
 };
 
+export const getUnreadMessageCount = async () => {
+  const response = await fetch(`${API_URL}/messages/unread-count`, {
+    method: 'GET',
+    headers: getAuthHeaders()
+  });
+  if (!response.ok) return { unread: 0, from: [] };
+  return response.json();
+};
+
 // ============ PAGOS STRIPE ============
 
 export const getStripeConfig = async () => {

@@ -129,3 +129,142 @@
   background: var(--primary-dark, #4455e0) !important;
   text-decoration: none !important;
 }
+
+/* Badge de mensajes no leídos */
+.nav-link-wrapper {
+  position: relative;
+}
+
+/* Puente invisible que cubre el hueco entre el enlace y el popover,
+   evitando que el :hover se pierda al desplazar el cursor hacia abajo */
+.nav-link-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: -16px;
+  right: -16px;
+  height: 12px; /* debe ser >= el gap top del popover */
+}
+
+.nav-link-with-badge {
+  position: relative;
+}
+
+.nav-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+  pointer-events: none;
+  animation: badge-pop 0.2s ease;
+}
+
+@keyframes badge-pop {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* Popover de remitentes */
+.unread-popover {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  min-width: 200px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.nav-link-wrapper:hover .unread-popover {
+  display: block;
+}
+
+/* Flecha decorativa */
+.unread-popover::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: #1e293b;
+  border-left: 1px solid rgba(255,255,255,0.12);
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+
+.unread-popover-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.4);
+  padding: 0.6rem 0.9rem 0.4rem;
+}
+
+.unread-popover-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.9rem;
+  color: rgba(255,255,255,0.85) !important;
+  text-decoration: none !important;
+  font-size: 0.85rem;
+  transition: background 0.12s;
+  gap: 0.75rem;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+.unread-popover-item:hover {
+  background: rgba(255,255,255,0.08) !important;
+  color: white !important;
+}
+
+.unread-popover-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unread-popover-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #ef4444;
+  color: white;
+  padding: 1px 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.unread-popover-count--new {
+  background: #f59e0b;
+}
+
+.unread-popover-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 4px 0;
+}
+
+.unread-popover-meta {
+  display: block;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.45);
+  font-weight: 400;
+  margin-bottom: 1px;
+}
