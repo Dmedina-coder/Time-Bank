@@ -162,6 +162,11 @@ def create_request_message(request_id):
 def mark_request_message_as_read(request_id, message_id):
     return message_controller.mark_message_as_read(request_id, message_id)
 
+@api.route('/messages/unread-count', methods=['GET'])
+@auth_middleware.require_auth
+def get_unread_message_count():
+    return message_controller.get_unread_count()
+
 # Rutas de transacciones
 @api.route('/transactions', methods=['GET'])
 @auth_middleware.require_auth

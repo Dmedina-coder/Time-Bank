@@ -214,3 +214,85 @@ class MessageController:
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': f'Error marcando mensaje como leído: {str(e)}'}), 500
+
+    def get_unread_count(self):
+        """Devuelve el número de mensajes no leídos y los remitentes agrupados"""
+        try:
+            current_user_id = self._current_user_id()
+            if not current_user_id:
+                return jsonify({'error': 'Usuario no autenticado'}), 401
+
+            # Total de mensajes no leídos
+            total_row = db.session.execute(
+                text(
+                    """
+                    SELECT COUNT(*) AS unread
+                    FROM request_messages m
+                    INNER JOIN requests r ON m.request_id = r.id
+                    WHERE m.read_at IS NULL
+                      AND m.sender_id != :user_id
+                      AND (r.requester_id = :user_id OR r.provider_id = :user_id)
+                    """
+                ),
+                {'user_id': current_user_id}
+            ).mappings().first()
+
+            # Detalle agrupado por remitente y solicitud
+            sender_rows = db.session.execute(
+                text(
+                    """
+                    SELECT u.name AS sender_name, r.id AS request_id,
+                           COUNT(*) AS count
+                    FROM request_messages m
+                    INNER JOIN requests r ON m.request_id = r.id
+                    INNER JOIN users u ON m.sender_id = u.id
+                    WHERE m.read_at IS NULL
+                      AND m.sender_id != :user_id
+                      AND (r.requester_id = :user_id OR r.provider_id = :user_id)
+                    GROUP BY m.sender_id, r.id, u.name
+                    ORDER BY MAX(m.created_at) DESC
+                    LIMIT 10
+                    """
+                ),
+                {'user_id': current_user_id}
+            ).mappings().all()
+
+            # Solicitudes pendientes donde el usuario es proveedor (alguien solicitó su servicio)
+            pending_rows = db.session.execute(
+                text(
+                    """
+                    SELECT r.id AS request_id, s.title AS service_title,
+                           u.name AS requester_name, r.created_at
+                    FROM requests r
+                    INNER JOIN services s ON r.service_id = s.id
+                    INNER JOIN users u ON r.requester_id = u.id
+                    WHERE r.provider_id = :user_id
+                      AND r.status = 'pending'
+                    ORDER BY r.created_at DESC
+                    LIMIT 10
+                    """
+                ),
+                {'user_id': current_user_id}
+            ).mappings().all()
+
+            return jsonify({
+                'unread': int(total_row['unread']) if total_row else 0,
+                'from': [
+                    {
+                        'name': row['sender_name'],
+                        'request_id': row['request_id'],
+                        'count': int(row['count'])
+                    }
+                    for row in sender_rows
+                ],
+                'pending_requests': [
+                    {
+                        'request_id': row['request_id'],
+                        'service_title': row['service_title'],
+                        'requester_name': row['requester_name']
+                    }
+                    for row in pending_rows
+                ]
+            }), 200
+        except Exception as e:
+            return jsonify({'error': f'Error obteniendo mensajes no leídos: {str(e)}'}), 500
