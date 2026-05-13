@@ -42,7 +42,7 @@ class PaymentService:
         intent = stripe.PaymentIntent.create(
             amount=amount_cents,
             currency=selected_currency,
-            automatic_payment_methods={'enabled': True},
+            payment_method_types=['card'],
             metadata={
                 'user_id': str(user_id),
                 'credits': str(credits)
