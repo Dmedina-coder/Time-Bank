@@ -11,6 +11,7 @@ from app.controllers.service_controller import ServiceController
 from app.controllers.request_controller import RequestController
 from app.controllers.message_controller import MessageController
 from app.controllers.transaction_controller import TransactionController
+from app.controllers.review_controller import ReviewController
 from app.middleware.auth_middleware import AuthMiddleware
 from app.services.auth_service import AuthService
 
@@ -28,6 +29,7 @@ service_controller = ServiceController()
 request_controller = RequestController()
 message_controller = MessageController()
 transaction_controller = TransactionController()
+review_controller = ReviewController()
 
 # Rutas de autenticación
 @api.route('/auth/login', methods=['POST'])
@@ -196,6 +198,12 @@ def create_stripe_payment_intent():
 def confirm_stripe_payment():
     return transaction_controller.confirm_stripe_payment(request.get_json())
 
+@api.route('/payments/stripe/webhook', methods=['POST'])
+def stripe_webhook():
+    raw_payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature', '')
+    return transaction_controller.handle_stripe_webhook(raw_payload, sig_header)
+
 # Rutas de administración
 @api.route('/admin/stats', methods=['GET'])
 @auth_middleware.require_auth
@@ -216,6 +224,13 @@ def manage_user_credits(user_id):
     data = request.get_json() or {}
     return admin_controller.manage_credits(user_id, data.get('amount', 0))
 
+@api.route('/admin/users/<int:user_id>/toggle-status', methods=['PUT'])
+@auth_middleware.require_auth
+@auth_middleware.require_admin
+def toggle_user_status(user_id):
+    current_user_id = request.user.get('user_id')
+    return admin_controller.toggle_user_status(user_id, current_user_id)
+
 @api.route('/admin/services/<int:service_id>/approve', methods=['PUT'])
 @auth_middleware.require_auth
 @auth_middleware.require_admin
@@ -227,6 +242,22 @@ def approve_service(service_id):
 @auth_middleware.require_admin
 def reject_service(service_id):
     return admin_controller.reject_service(service_id)
+
+# Rutas de valoraciones
+@api.route('/services/<int:service_id>/reviews', methods=['GET'])
+def get_service_reviews(service_id):
+    return review_controller.get_service_reviews(service_id)
+
+@api.route('/reviews', methods=['POST'])
+@auth_middleware.require_auth
+def create_review():
+    return review_controller.create_review(request.get_json())
+
+@api.route('/reviews/<int:review_id>', methods=['DELETE'])
+@auth_middleware.require_auth
+@auth_middleware.require_admin
+def delete_review(review_id):
+    return review_controller.delete_review(review_id)
 
 def register_routes(app):
     """Registra todas las rutas en la aplicación"""
