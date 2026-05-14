@@ -40,7 +40,7 @@ cd backend
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-
+# (Asegúrate de que tu base de datos MySQL esté corriendo)
 python main.py
 ```
 
@@ -49,41 +49,51 @@ Frontend:
 ```bash
 cd frontend
 npm install
-npm start
+npm run dev
 ```
 
 ## API — resumen de endpoints (extracto)
 
-- Authentication
+- **Authentication**
     - `POST /api/auth/register` — Registro (name, email, password)
     - `POST /api/auth/login` — Login (email, password) → devuelve `access_token`
     - `POST /api/auth/logout` — Logout (Authorization header)
 
-- Users
+- **Users**
     - `GET /api/users/me` — Perfil del usuario autenticado
     - `PUT /api/users/me` — Actualizar perfil
-    - `GET /api/users` — Listado (admin)
+    - `GET /api/users/{user_id}` — Obtener perfil público de un usuario
 
-- Services
+- **Services**
     - `GET /api/services` — Listar
     - `POST /api/services` — Crear
     - `GET /api/services/{id}` — Obtener
     - `PUT /api/services/{id}` — Actualizar
     - `DELETE /api/services/{id}` — Eliminar
+    - `POST /api/services/{id}/image` — Subir imagen de servicio
 
-- Requests
+- **Requests**
     - `POST /api/requests` — Solicitar servicio
+    - `GET /api/requests` — Listar solicitudes del usuario
     - `PUT /api/requests/{id}/accept|reject|complete|cancel` — Cambiar estado
+    - `GET /api/requests/{id}/messages` — Ver mensajes de una solicitud
+    - `POST /api/requests/{id}/messages` — Enviar un mensaje
 
-- Transactions
-    - `GET /api/transactions` — Historial
-    - `POST /api/transactions/transfer` — Transferir créditos
+- **Transactions & Payments**
+    - `GET /api/transactions` — Historial de transacciones del usuario
+    - `POST /api/transactions/transfer` — Transferir créditos a otro usuario
+    - `POST /api/payments/stripe/payment-intent` — Crear intento de pago para comprar créditos
 
-- Reviews
-    - `POST /api/reviews` — Crear reseña
-    - `GET /api/services/{id}/reviews` — Obtener reseñas
+- **Reviews**
+    - `POST /api/reviews` — Crear reseña para un servicio completado
+    - `GET /api/services/{id}/reviews` — Obtener reseñas de un servicio
 
-Para detalles de request/response ver la documentación principal en `Time Bank – System Documentation.md`.
+- **Admin**
+    - `GET /api/admin/users` — Listado de todos los usuarios
+    - `POST /api/admin/users/{user_id}/credits` — Ajustar créditos de un usuario
+    - `PUT /api/admin/services/{service_id}/approve|reject` — Aprobar o rechazar un servicio
+
+Para detalles de request/response ver la documentación completa en `API_Reference.md`.
 
 ## Base de datos
 
