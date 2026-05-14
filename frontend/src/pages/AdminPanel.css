@@ -168,13 +168,6 @@
 .form-group input { padding: 0.65rem 0.9rem; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem; color: var(--text-primary); font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s; }
 .form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(91,110,245,0.12); }
 
-  font-size: 1.85rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  margin-bottom: 0.3rem;
-  letter-spacing: -0.02em;
-}
-.module-container .subtitle { color: var(--text-secondary); margin: 0 0 2rem; font-size: 0.95rem; }
 
 /* Stats grid */
 .stats-grid {

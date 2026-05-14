@@ -5,6 +5,7 @@ Maneja las peticiones relacionadas con transacciones
 
 import json
 import os
+import traceback
 
 import stripe
 from flask import jsonify, request as flask_request
@@ -17,6 +18,18 @@ from app.services.payment_service import PaymentService
 class TransactionController:
     def __init__(self):
         self.payment_service = PaymentService()
+
+    def _get_stripe_value(self, obj, key, default=None):
+        if obj is None:
+            return default
+
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+
+        try:
+            return obj[key]
+        except Exception:
+            return getattr(obj, key, default)
 
     def _parse_metadata(self, raw_metadata):
         if raw_metadata is None:
@@ -31,17 +44,33 @@ class TransactionController:
         return None
 
     def _serialize_transaction_row(self, row):
-        return {
-            'id': row['id'],
-            'sender_id': row['sender_id'],
-            'receiver_id': row['receiver_id'],
-            'sender_name': row.get('sender_name'),
-            'receiver_name': row.get('receiver_name'),
-            'credits': row['credits'],
-            'type': row['type'],
-            'metadata': self._parse_metadata(row.get('metadata')),
-            'created_at': row['created_at'].isoformat() if row.get('created_at') else None
-        }
+        if not row:
+            return None
+        try:
+            return {
+                'id': row.get('id'),
+                'sender_id': row.get('sender_id'),
+                'receiver_id': row.get('receiver_id'),
+                'sender_name': row.get('sender_name'),
+                'receiver_name': row.get('receiver_name'),
+                'credits': row.get('credits'),
+                'type': row.get('type'),
+                'metadata': self._parse_metadata(row.get('metadata')),
+                'created_at': row.get('created_at').isoformat() if row.get('created_at') else None
+            }
+        except (AttributeError, TypeError) as e:
+            # Log the error and return safe serialization
+            return {
+                'id': row.get('id'),
+                'sender_id': row.get('sender_id'),
+                'receiver_id': row.get('receiver_id'),
+                'sender_name': row.get('sender_name'),
+                'receiver_name': row.get('receiver_name'),
+                'credits': row.get('credits'),
+                'type': row.get('type'),
+                'metadata': None,
+                'created_at': None
+            }
 
     def _is_admin(self):
         return hasattr(flask_request, 'user') and flask_request.user.get('role') == 'admin'
@@ -90,6 +119,9 @@ class TransactionController:
 
             data = data or {}
             payment_intent_id = data.get('payment_intent_id')
+            
+            if not payment_intent_id:
+                return jsonify({'error': 'payment_intent_id es requerido'}), 400
 
             validated_payment = self.payment_service.validate_successful_payment(payment_intent_id, current_user_id)
 
@@ -99,6 +131,7 @@ class TransactionController:
                     SELECT id, sender_id, receiver_id, credits, type, metadata, created_at
                     FROM transactions
                     WHERE type = 'purchase'
+                      AND metadata IS NOT NULL
                       AND JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.stripe_payment_intent_id')) = :payment_intent_id
                     LIMIT 1
                     """
@@ -165,6 +198,8 @@ class TransactionController:
             return jsonify({'error': str(e)}), 400
         except Exception as e:
             db.session.rollback()
+            print('Error confirmando pago de Stripe:')
+            traceback.print_exc()
             return jsonify({'error': f'Error confirmando pago de Stripe: {str(e)}'}), 500
     
     def get_transactions(self):
@@ -397,13 +432,13 @@ class TransactionController:
 
         if event_type == 'payment_intent.succeeded':
             data_obj = event['data']['object']
-            payment_intent_id = data_obj['id']
-            amount_received = data_obj.get('amount_received') or data_obj.get('amount', 0)
-            currency = data_obj.get('currency', '')
-            metadata = data_obj.get('metadata', {})
+            payment_intent_id = self._get_stripe_value(data_obj, 'id')
+            amount_received = self._get_stripe_value(data_obj, 'amount_received') or self._get_stripe_value(data_obj, 'amount', 0)
+            currency = self._get_stripe_value(data_obj, 'currency', '')
+            metadata = self._get_stripe_value(data_obj, 'metadata', {})
 
-            user_id_raw = metadata.get('user_id')
-            credits_raw = metadata.get('credits')
+            user_id_raw = self._get_stripe_value(metadata, 'user_id')
+            credits_raw = self._get_stripe_value(metadata, 'credits')
 
             if not user_id_raw or not credits_raw:
                 return jsonify({'error': 'Metadata incompleta en PaymentIntent'}), 422

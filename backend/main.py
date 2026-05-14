@@ -4,5 +4,5 @@ app = create_app()
 
 if __name__ == '__main__':
     # El puerto se puede configurar en el archivo .env o se usa 5000 por defecto
-    port = int(app.config.get('PORT', 5000))
+    port = int(app.config.get('PORT', 5050))
     app.run(debug=True, host='0.0.0.0', port=port)

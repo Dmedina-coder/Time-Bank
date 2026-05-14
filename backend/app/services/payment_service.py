@@ -19,6 +19,18 @@ class PaymentService:
     def is_configured(self):
         return bool(self.private_key and self.public_key)
 
+    def _get_stripe_value(self, obj, key, default=None):
+        if obj is None:
+            return default
+
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+
+        try:
+            return obj[key]
+        except Exception:
+            return getattr(obj, key, default)
+
     def get_public_config(self):
         if not self.is_configured():
             raise ValueError('Stripe no está configurado correctamente en variables de entorno')
@@ -39,15 +51,18 @@ class PaymentService:
         selected_currency = (currency or self.default_currency).lower()
         amount_cents = credits * self.credit_price_cents
 
-        intent = stripe.PaymentIntent.create(
-            amount=amount_cents,
-            currency=selected_currency,
-            payment_method_types=['card'],
-            metadata={
-                'user_id': str(user_id),
-                'credits': str(credits)
-            }
-        )
+        try:
+            intent = stripe.PaymentIntent.create(
+                amount=amount_cents,
+                currency=selected_currency,
+                payment_method_types=['card'],
+                metadata={
+                    'user_id': str(user_id),
+                    'credits': str(credits)
+                }
+            )
+        except stripe.error.StripeError as e:
+            raise ValueError(f'Error creando PaymentIntent en Stripe: {str(e)}')
 
         return {
             'payment_intent_id': intent.id,
@@ -65,27 +80,39 @@ class PaymentService:
         if not payment_intent_id:
             raise ValueError('payment_intent_id es requerido')
 
-        intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        try:
+            intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+        except stripe.error.InvalidRequestError:
+            raise ValueError('PaymentIntent no encontrado en Stripe')
+        except stripe.error.StripeError as e:
+            raise ValueError(f'Error consultando Stripe: {str(e)}')
 
         if intent.status != 'succeeded':
-            raise ValueError('El pago aún no está completado en Stripe')
+            raise ValueError(f'El pago no está completado. Estado actual: {intent.status}')
 
-        metadata_user_id = intent.metadata.get('user_id')
-        if metadata_user_id and int(metadata_user_id) != int(user_id):
+        metadata = self._get_stripe_value(intent, 'metadata', None)
+        metadata_user_id = self._get_stripe_value(metadata, 'user_id')
+        if not metadata_user_id:
+            raise ValueError('El pago no contiene información del usuario en metadata')
+        
+        if int(metadata_user_id) != int(user_id):
             raise ValueError('El pago no pertenece al usuario autenticado')
 
-        credits_raw = intent.metadata.get('credits')
+        credits_raw = self._get_stripe_value(metadata, 'credits')
+        if not credits_raw:
+            raise ValueError('El pago no contiene información de créditos en metadata')
+        
         try:
             credits = int(credits_raw)
         except (TypeError, ValueError):
-            raise ValueError('No se pudo determinar la cantidad de créditos del pago')
+            raise ValueError(f'Cantidad de créditos inválida en metadata: {credits_raw}')
 
         if credits <= 0:
-            raise ValueError('Cantidad de créditos inválida en metadata de Stripe')
+            raise ValueError('Cantidad de créditos debe ser mayor a 0')
 
         return {
             'payment_intent_id': intent.id,
-            'amount_received': intent.amount_received or intent.amount,
+            'amount_received': int(intent.amount_received or intent.amount),
             'currency': intent.currency,
             'credits': credits,
             'status': intent.status
