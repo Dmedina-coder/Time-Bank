@@ -40,7 +40,6 @@ cd backend
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-# (Asegúrate de que tu base de datos MySQL esté corriendo)
 python main.py
 ```
 

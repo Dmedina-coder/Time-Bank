@@ -28,32 +28,6 @@ Current backend capabilities also include service image uploads, request-level m
 
 Project repository: [Time Bank repository](https://github.com/Dmedina-coder/Time-Bank)
 
-# 0. Team Members
-
-- Daniel Medina Negrete
-- Javier Fernandez Del Amo
-
----
-# 1. Project Overview
-
-## 1.1 Introduction
-
-The **Time Bank Platform** is a web-based peer-to-peer system that enables users to exchange services using a virtual currency called **time credits**. Instead of paying with traditional money, users earn credits by providing services and spend them when requesting services from other users.
-
-The system is designed to promote collaboration, knowledge sharing, and mutual support within a community. Each hour of service provided corresponds to a specific number of time credits that can later be used to obtain services from other participants.
-
-The application follows modern web engineering practices, including:
-- MVC architecture
-- RESTful API design
-- Token-based authentication
-- Secure communication between services
-- Modular and scalable design
-- Responsive frontend interface
-
-The system also supports integration with an external payment provider that allows users to purchase time credits.
-
-Current backend capabilities additionally include service image uploads, request-level messaging, automatic credit transfers on completed requests, and admin tools for statistics, credit adjustments, and service moderation.
-
 ---
 # 2. Backend Structure (Python)
 
@@ -85,7 +59,42 @@ frontend/            # React frontend
 ```
 
 ---
-# 4. Content Model (Class Diagram)
+# 4. Model-View-Controller (MVC)
+
+The system follows a Model-View-Controller (MVC) architecture to separate responsibilities and improve modularity.
+
+- **Models**: Represent the data and business logic.
+- **Views**: Display information to the user and capture their interactions.
+- **Controllers**: Act as intermediaries, handling user requests and updating models and views.
+
+```mermaid
+graph TD
+    subgraph "Frontend (Views)"
+        direction LR
+        V1[React Pages]
+        V2[React Components]
+    end
+
+    subgraph "Backend (Controllers & Models)"
+        direction TB
+        C[Flask Controllers]
+        M[Data Models]
+    end
+
+    subgraph "Database"
+        direction TB
+        DB[(Database)]
+    end
+
+    V1 --> C
+    V2 --> C
+    C --> M
+    M --> DB
+```
+
+## 4.1 Models (Class Diagram)
+
+The models define the data structure and the relationships between different entities.
 
 ```mermaid
 classDiagram
